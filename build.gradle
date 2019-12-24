@@ -1,0 +1,29 @@
+plugins {
+	id 'java-library'
+}
+
+repositories {
+	jcenter()
+}
+
+// substitute local project dependencies if available
+configurations.all {
+	resolutionStrategy.dependencySubstitution.all { DependencySubstitution dependency ->
+		if (dependency.requested instanceof ModuleComponentSelector &&
+		["org.obrel" , "de.esoco"].contains(dependency.requested.group)) {
+			def targetProject = findProject(":${dependency.requested.module}")
+			if (targetProject != null) {
+				dependency.useTarget (targetProject, "prefer local project")
+			}
+		}
+	}
+}
+
+dependencies {
+	api 'de.esoco:esoco-common:1.3.+'
+	testImplementation platform('org.junit:junit-bom:5.5.2')
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testImplementation 'junit:junit:4.12'
+
+	testRuntimeOnly 'org.junit.vintage:junit-vintage-engine' // JUnit4 support
+}

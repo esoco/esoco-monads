@@ -1,0 +1,3 @@
+rootProject.name = 'esoco-monads'
+
+includeFlat 'esoco-common'
