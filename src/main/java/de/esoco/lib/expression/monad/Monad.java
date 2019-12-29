@@ -1,5 +1,5 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// This file is a part of the 'objectrelations' project.
+// This file is a part of the 'esoco-monads' project.
 // Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,8 +27,8 @@ import java.util.function.Function;
  *
  * @author eso
  */
-public interface Monad<T, M extends Monad<?, M>> extends Functor<T>
-{
+public interface Monad<T, M extends Monad<?, M>> extends Functor<T> {
+
 	//~ Methods ----------------------------------------------------------------
 
 	/***************************************
@@ -52,8 +52,7 @@ public interface Monad<T, M extends Monad<?, M>> extends Functor<T>
 	@SuppressWarnings("unchecked")
 	default public <V, R, N extends Monad<V, M>> Monad<R, M> and(
 		N											  rOther,
-		BiFunction<? super T, ? super V, ? extends R> fJoin)
-	{
+		BiFunction<? super T, ? super V, ? extends R> fJoin) {
 		return flatMap(t -> rOther.map(v -> fJoin.apply(t, v)));
 	}
 
@@ -89,10 +88,8 @@ public interface Monad<T, M extends Monad<?, M>> extends Functor<T>
 	 * @see Functor#then(Consumer)
 	 */
 	@Override
-	default public Monad<T, M> then(Consumer<? super T> fConsumer)
-	{
-		return flatMap(t ->
-		{
+	default public Monad<T, M> then(Consumer<? super T> fConsumer) {
+		return flatMap(t -> {
 			fConsumer.accept(t);
 
 			return this;
