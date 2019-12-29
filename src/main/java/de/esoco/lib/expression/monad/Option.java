@@ -1,5 +1,5 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// This file is a part of the 'objectrelations' project.
+// This file is a part of the 'esoco-monads' project.
 // Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,8 +34,8 @@ import static java.util.stream.Collectors.toList;
  *
  * @author eso
  */
-public class Option<T> implements Monad<T, Option<?>>
-{
+public class Option<T> implements Monad<T, Option<?>> {
+
 	//~ Static fields/initializers ---------------------------------------------
 
 	private static final Option<?> NONE = new Option<>(null);
@@ -51,8 +51,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 *
 	 * @param rValue The value to wrap
 	 */
-	private Option(T rValue)
-	{
+	private Option(T rValue) {
 		this.rValue = rValue;
 	}
 
@@ -65,8 +64,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 * @return The nothing value
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> Option<T> none()
-	{
+	public static <T> Option<T> none() {
 		return (Option<T>) NONE;
 	}
 
@@ -78,8 +76,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 *
 	 * @return The new instance
 	 */
-	public static <T> Option<T> nonNull(T rValue)
-	{
+	public static <T> Option<T> nonNull(T rValue) {
 		return Option.ofRequired(rValue);
 	}
 
@@ -92,8 +89,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 *
 	 * @return The new instance
 	 */
-	public static <T> Option<T> of(T rValue)
-	{
+	public static <T> Option<T> of(T rValue) {
 		return rValue != null ? new Option<>(rValue) : none();
 	}
 
@@ -112,15 +108,14 @@ public class Option<T> implements Monad<T, Option<?>>
 	 *         {@link #none()} if one or more options do not exist
 	 */
 	public static <T> Option<Collection<T>> ofAll(
-		Collection<Option<T>> rOptions)
-	{
+		Collection<Option<T>> rOptions) {
 		Optional<Option<T>> aMissing =
 			rOptions.stream().filter(o -> !o.exists()).findFirst();
 
 		return aMissing.isPresent()
 			   ? none()
 			   : Option.of(
-			rOptions.stream().map(o -> o.orFail()).collect(toList()));
+			rOptions.stream().map(Option::orFail).collect(toList()));
 	}
 
 	/***************************************
@@ -131,8 +126,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 *
 	 * @return A new option containing a stream of existing values
 	 */
-	public static <T> Option<Stream<T>> ofExisting(Stream<Option<T>> rOptions)
-	{
+	public static <T> Option<Stream<T>> ofExisting(Stream<Option<T>> rOptions) {
 		return Option.of(rOptions.filter(Option::exists).map(o -> o.rValue));
 	}
 
@@ -143,8 +137,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 *
 	 * @return The new instance
 	 */
-	public static <T> Option<T> ofOptional(Optional<T> rOptional)
-	{
+	public static <T> Option<T> ofOptional(Optional<T> rOptional) {
 		return rOptional.isPresent() ? new Option<>(rOptional.get()) : none();
 	}
 
@@ -157,8 +150,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 *
 	 * @throws NullPointerException If the given value is NULL
 	 */
-	public static <T> Option<T> ofRequired(T rValue)
-	{
+	public static <T> Option<T> ofRequired(T rValue) {
 		Objects.requireNonNull(rValue);
 
 		return Option.of(rValue);
@@ -172,8 +164,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 *
 	 * @return The new instance
 	 */
-	public static <T> Option<T> option(T rValue)
-	{
+	public static <T> Option<T> option(T rValue) {
 		return Option.of(rValue);
 	}
 
@@ -186,8 +177,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	@SuppressWarnings("unchecked")
 	public <V, R, N extends Monad<V, Option<?>>> Option<R> and(
 		N											  rOther,
-		BiFunction<? super T, ? super V, ? extends R> fJoin)
-	{
+		BiFunction<? super T, ? super V, ? extends R> fJoin) {
 		return (Option<R>) Monad.super.and(rOther, fJoin);
 	}
 
@@ -195,8 +185,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	public boolean equals(Object rObject)
-	{
+	public boolean equals(Object rObject) {
 		return this == rObject ||
 			   (rObject instanceof Option &&
 				Objects.equals(rValue, ((Option<?>) rObject).rValue));
@@ -208,8 +197,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 * @return TRUE if this option exists, FALSE if it is undefined ({@link
 	 *         #none()})
 	 */
-	public final boolean exists()
-	{
+	public final boolean exists() {
 		return rValue != null;
 	}
 
@@ -222,8 +210,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 * @return The resulting option
 	 */
 	@SuppressWarnings("unchecked")
-	public Option<T> filter(Predicate<T> pCriteria)
-	{
+	public Option<T> filter(Predicate<T> pCriteria) {
 		return flatMap(v -> pCriteria.test(v) ? this : none());
 	}
 
@@ -251,14 +238,10 @@ public class Option<T> implements Monad<T, Option<?>>
 	@Override
 	@SuppressWarnings("unchecked")
 	public <R, N extends Monad<R, Option<?>>> Option<R> flatMap(
-		Function<? super T, N> fMap)
-	{
-		try
-		{
+		Function<? super T, N> fMap) {
+		try {
 			return (Option<R>) fMap.apply(rValue);
-		}
-		catch (NullPointerException e)
-		{
+		} catch (NullPointerException e) {
 			return none();
 		}
 	}
@@ -267,8 +250,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	public int hashCode()
-	{
+	public int hashCode() {
 		return Objects.hashCode(rValue);
 	}
 
@@ -279,8 +261,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 *
 	 * @return The resulting option for chained invocations
 	 */
-	public final Option<T> ifExists(Consumer<? super T> fConsumer)
-	{
+	public final Option<T> ifExists(Consumer<? super T> fConsumer) {
 		return then(fConsumer);
 	}
 
@@ -295,8 +276,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 * @return TRUE if this option exists and the value can be assigned to the
 	 *         given datatype
 	 */
-	public final boolean is(Class<?> rDatatype)
-	{
+	public final boolean is(Class<?> rDatatype) {
 		return exists() && rDatatype.isAssignableFrom(rValue.getClass());
 	}
 
@@ -312,8 +292,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
-	public <R> Option<R> map(Function<? super T, ? extends R> fMap)
-	{
+	public <R> Option<R> map(Function<? super T, ? extends R> fMap) {
 		return flatMap(t -> Option.of(fMap.apply(t)));
 	}
 
@@ -321,10 +300,8 @@ public class Option<T> implements Monad<T, Option<?>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void orElse(Consumer<Throwable> fHandler)
-	{
-		if (!exists())
-		{
+	public void orElse(Consumer<Throwable> fHandler) {
+		if (!exists()) {
 			fHandler.accept(new NullPointerException());
 		}
 	}
@@ -335,10 +312,8 @@ public class Option<T> implements Monad<T, Option<?>>
 	 *
 	 * @param fCode The code to execute
 	 */
-	public void orElse(Runnable fCode)
-	{
-		if (!exists())
-		{
+	public void orElse(Runnable fCode) {
+		if (!exists()) {
 			fCode.run();
 		}
 	}
@@ -349,14 +324,10 @@ public class Option<T> implements Monad<T, Option<?>>
 	 * @see Functor#orFail()
 	 */
 	@Override
-	public T orFail()
-	{
-		if (exists())
-		{
+	public T orFail() {
+		if (exists()) {
 			return rValue;
-		}
-		else
-		{
+		} else {
 			throw new NullPointerException();
 		}
 	}
@@ -369,8 +340,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 *
 	 * @return Either the existing value or the default provided by the supplier
 	 */
-	public T orGet(Supplier<T> fSupplyDefault)
-	{
+	public T orGet(Supplier<T> fSupplyDefault) {
 		return exists() ? rValue : fSupplyDefault.get();
 	}
 
@@ -378,15 +348,11 @@ public class Option<T> implements Monad<T, Option<?>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	public <E extends Throwable> T orThrow(Function<Throwable, E> fMapException)
-		throws E
-	{
-		if (exists())
-		{
+	public <E extends Exception> T orThrow(Function<Exception, E> fMapException)
+		throws E {
+		if (exists()) {
 			return rValue;
-		}
-		else
-		{
+		} else {
 			throw fMapException.apply(new NullPointerException());
 		}
 	}
@@ -395,8 +361,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	public T orUse(T rDefault)
-	{
+	public T orUse(T rDefault) {
 		return exists() ? rValue : rDefault;
 	}
 
@@ -404,8 +369,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	public Option<T> then(Consumer<? super T> fConsumer)
-	{
+	public Option<T> then(Consumer<? super T> fConsumer) {
 		return exists() ? (Option<T>) Monad.super.then(fConsumer) : this;
 	}
 
@@ -414,8 +378,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 *
 	 * @return The optional instance
 	 */
-	public Optional<T> toOptional()
-	{
+	public Optional<T> toOptional() {
 		return Optional.ofNullable(rValue);
 	}
 
@@ -423,8 +386,7 @@ public class Option<T> implements Monad<T, Option<?>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	public String toString()
-	{
+	public String toString() {
 		return exists() ? rValue.toString() : "[none]";
 	}
 }

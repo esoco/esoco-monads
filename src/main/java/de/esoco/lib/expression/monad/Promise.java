@@ -1,5 +1,5 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// This file is a part of the 'objectrelations' project.
+// This file is a part of the 'esoco-monads' project.
 // Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,8 +38,8 @@ import java.util.function.Supplier;
  *
  * @author eso
  */
-public abstract class Promise<T> implements Monad<T, Promise<?>>
-{
+public abstract class Promise<T> implements Monad<T, Promise<?>> {
+
 	//~ Enums ------------------------------------------------------------------
 
 	/********************************************************************
@@ -58,8 +58,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 *
 	 * @return The failed promise
 	 */
-	public static <T> Promise<T> failure(Throwable eError)
-	{
+	public static <T> Promise<T> failure(Throwable eError) {
 		CompletableFuture<T> aStage = new CompletableFuture<>();
 
 		aStage.completeExceptionally(eError);
@@ -74,9 +73,8 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 *
 	 * @return The already resolved promise
 	 */
-	public static <T> Promise<T> of(T rValue)
-	{
-		return new ResolvedPromise<T>(rValue);
+	public static <T> Promise<T> of(T rValue) {
+		return new ResolvedPromise<>(rValue);
 	}
 
 	/***************************************
@@ -87,9 +85,8 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 *
 	 * @return The new asynchronous promise
 	 */
-	public static <T> Promise<T> of(CompletionStage<T> rStage)
-	{
-		return new CompletionStagePromise<T>(rStage.thenApply(Promise::of));
+	public static <T> Promise<T> of(CompletionStage<T> rStage) {
+		return new CompletionStagePromise<>(rStage.thenApply(Promise::of));
 	}
 
 	/***************************************
@@ -101,8 +98,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 *
 	 * @return The new asynchronous promise
 	 */
-	public static <T> Promise<T> of(Supplier<T> fSupplier)
-	{
+	public static <T> Promise<T> of(Supplier<T> fSupplier) {
 		return Promise.of(CompletableFuture.supplyAsync(fSupplier));
 	}
 
@@ -118,8 +114,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 *         FAILED state if an input promise failed
 	 */
 	public static <T> Promise<Collection<T>> ofAll(
-		Collection<Promise<T>> rPromises)
-	{
+		Collection<Promise<T>> rPromises) {
 		// list needs to be synchronized because the promises may run in
 		// parallel in which case aResult.add(t) will be invoked concurrently
 		int     nCount  = rPromises.size();
@@ -127,25 +122,20 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 
 		CompletableFuture<Collection<T>> aStage = new CompletableFuture<>();
 
-		if (rPromises.isEmpty())
-		{
+		if (rPromises.isEmpty()) {
 			aStage.complete(aResult);
-		}
-		else
-		{
+		} else {
 			rPromises.forEach(
 				rPromise ->
 					rPromise.then(
-						v ->
-						{
+						v -> {
 							aResult.add(v);
 
-							if (aResult.size() == nCount)
-							{
+							if (aResult.size() == nCount) {
 								aStage.complete(aResult);
 							}
 						})
-					.onError(e -> aStage.completeExceptionally(e)));
+					.onError(aStage::completeExceptionally));
 		}
 
 		return Promise.of(aStage);
@@ -163,10 +153,8 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 *
 	 * @throws IllegalArgumentException If the argument collection is empty
 	 */
-	public static <T> Promise<T> ofAny(Collection<Promise<T>> rPromises)
-	{
-		if (rPromises.isEmpty())
-		{
+	public static <T> Promise<T> ofAny(Collection<Promise<T>> rPromises) {
+		if (rPromises.isEmpty()) {
 			throw new IllegalArgumentException("At least one promise needed");
 		}
 
@@ -174,8 +162,8 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 
 		rPromises.forEach(
 			rPromise ->
-				rPromise.then(v -> aStage.complete(v))
-				.onError(e -> aStage.completeExceptionally(e)));
+				rPromise.then(aStage::complete)
+				.onError(aStage::completeExceptionally));
 
 		return Promise.of(aStage);
 	}
@@ -250,8 +238,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	@SuppressWarnings("unchecked")
 	public <V, R, N extends Monad<V, Promise<?>>> Promise<R> and(
 		N											  rOther,
-		BiFunction<? super T, ? super V, ? extends R> fJoin)
-	{
+		BiFunction<? super T, ? super V, ? extends R> fJoin) {
 		return (Promise<R>) Monad.super.and(rOther, fJoin);
 	}
 
@@ -265,8 +252,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 *
 	 * @return TRUE if this promise
 	 */
-	public final boolean isResolved()
-	{
+	public final boolean isResolved() {
 		return getState() == State.RESOLVED;
 	}
 
@@ -274,8 +260,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	public <R> Promise<R> map(Function<? super T, ? extends R> fMap)
-	{
+	public <R> Promise<R> map(Function<? super T, ? extends R> fMap) {
 		return flatMap(t -> Promise.of(fMap.apply(t)));
 	}
 
@@ -283,8 +268,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	public Promise<T> then(Consumer<? super T> fConsumer)
-	{
+	public Promise<T> then(Consumer<? super T> fConsumer) {
 		return (Promise<T>) Monad.super.then(fConsumer);
 	}
 
@@ -294,8 +278,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 *
 	 * @return A future representing this promise
 	 */
-	public Future<T> toFuture()
-	{
+	public Future<T> toFuture() {
 		return new PromiseFuture<>(this);
 	}
 
@@ -303,8 +286,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	public String toString()
-	{
+	public String toString() {
 		return String.format(
 			"%s[%s]",
 			getClass().getSimpleName(),
@@ -318,8 +300,8 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 *
 	 * @author eso
 	 */
-	public static class PromiseFuture<T> implements Future<T>
-	{
+	public static class PromiseFuture<T> implements Future<T> {
+
 		//~ Instance fields ----------------------------------------------------
 
 		private final Promise<T> rPromise;
@@ -331,8 +313,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 *
 		 * @param rPromise The promise to wrap
 		 */
-		public PromiseFuture(Promise<T> rPromise)
-		{
+		public PromiseFuture(Promise<T> rPromise) {
 			this.rPromise = rPromise;
 		}
 
@@ -342,8 +323,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public boolean cancel(boolean bMayInterruptIfRunning)
-		{
+		public boolean cancel(boolean bMayInterruptIfRunning) {
 			return rPromise.cancel();
 		}
 
@@ -351,8 +331,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T get() throws InterruptedException, ExecutionException
-		{
+		public T get() throws InterruptedException, ExecutionException {
 			return getImpl(rPromise);
 		}
 
@@ -362,8 +341,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		@Override
 		public T get(long nTimeout, TimeUnit eUnit) throws InterruptedException,
 														   ExecutionException,
-														   TimeoutException
-		{
+														   TimeoutException {
 			return getImpl(rPromise.withTimeout(nTimeout, eUnit));
 		}
 
@@ -371,8 +349,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public boolean isCancelled()
-		{
+		public boolean isCancelled() {
 			return rPromise.getState() == State.CANCELLED;
 		}
 
@@ -380,29 +357,22 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public boolean isDone()
-		{
+		public boolean isDone() {
 			return rPromise.getState() != State.ACTIVE;
 		}
 
 		/***************************************
 		 * {@inheritDoc}
 		 */
-		private T getImpl(Promise<T> rPromise) throws InterruptedException,
-													  ExecutionException
-		{
-			try
-			{
+		private T getImpl(Promise<T> rPromise) throws ExecutionException,
+													  InterruptedException {
+			try {
 				return rPromise.orFail();
-			}
-			catch (RuntimeException |
-				   InterruptedException |
-				   ExecutionException e)
-			{
+			} catch (RuntimeException |
+					 ExecutionException |
+					 InterruptedException e) {
 				throw e;
-			}
-			catch (Throwable e)
-			{
+			} catch (Exception e) {
 				throw new ExecutionException(e);
 			}
 		}
@@ -419,8 +389,8 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 *
 	 * @author eso
 	 */
-	static class CompletionStagePromise<T> extends Promise<T>
-	{
+	static class CompletionStagePromise<T> extends Promise<T> {
+
 		//~ Instance fields ----------------------------------------------------
 
 		// wraps another promise to simplify the implementation of flatMap
@@ -435,8 +405,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 *
 		 * @param rStage The completion stage to wrap
 		 */
-		CompletionStagePromise(CompletionStage<Promise<T>> rStage)
-		{
+		CompletionStagePromise(CompletionStage<Promise<T>> rStage) {
 			this(rStage, -1, null);
 		}
 
@@ -449,8 +418,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 */
 		CompletionStagePromise(CompletionStage<Promise<T>> rStage,
 							   long						   nTimeout,
-							   TimeUnit					   eTimeUnit)
-		{
+							   TimeUnit					   eTimeUnit) {
 			this.rStage    = rStage;
 			this.nTimeout  = nTimeout;
 			this.eTimeUnit = eTimeUnit;
@@ -462,8 +430,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public boolean cancel()
-		{
+		public boolean cancel() {
 			return rStage.toCompletableFuture().cancel(false);
 		}
 
@@ -472,8 +439,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 */
 		@Override
 		public <R, N extends Monad<R, Promise<?>>> Promise<R> flatMap(
-			Function<? super T, N> fMap)
-		{
+			Function<? super T, N> fMap) {
 			return new CompletionStagePromise<>(
 				rStage.thenApplyAsync(p -> p.flatMap(fMap)));
 		}
@@ -482,31 +448,21 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public State getState()
-		{
+		public State getState() {
 			CompletableFuture<Promise<T>> rFuture =
 				rStage.toCompletableFuture();
 
-			if (rFuture.isDone())
-			{
-				if (rFuture.isCompletedExceptionally())
-				{
-					if (rFuture.isCancelled())
-					{
+			if (rFuture.isDone()) {
+				if (rFuture.isCompletedExceptionally()) {
+					if (rFuture.isCancelled()) {
 						return State.CANCELLED;
-					}
-					else
-					{
+					} else {
 						return State.FAILED;
 					}
-				}
-				else
-				{
+				} else {
 					return State.RESOLVED;
 				}
-			}
-			else
-			{
+			} else {
 				return State.ACTIVE;
 			}
 		}
@@ -515,31 +471,24 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public Promise<T> onError(Consumer<Throwable> fHandler)
-		{
+		public Promise<T> onError(Consumer<Throwable> fHandler) {
 			return new CompletionStagePromise<>(
 				rStage.whenComplete(
-					(t, e) ->
-				{
-					if (e != null)
-					{
-						fHandler.accept(e);
-					}
-				}));
+					(t, e) -> {
+						if (e != null) {
+							fHandler.accept(e);
+						}
+					}));
 		}
 
 		/***************************************
 		 * {@inheritDoc}
 		 */
 		@Override
-		public void orElse(Consumer<Throwable> fHandler)
-		{
-			try
-			{
+		public void orElse(Consumer<Throwable> fHandler) {
+			try {
 				getValue();
-			}
-			catch (Exception e)
-			{
+			} catch (Exception e) {
 				fHandler.accept(e);
 			}
 		}
@@ -548,31 +497,19 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orFail() throws Throwable
-		{
-			try
-			{
-				return getValue().orFail();
-			}
-			catch (Exception e)
-			{
-				throw e;
-			}
+		public T orFail() throws Exception {
+			return getValue().orFail();
 		}
 
 		/***************************************
 		 * {@inheritDoc}
 		 */
 		@Override
-		public <E extends Throwable> T orThrow(
-			Function<Throwable, E> fMapException) throws E
-		{
-			try
-			{
+		public <E extends Exception> T orThrow(
+			Function<Exception, E> fMapException) throws E {
+			try {
 				return getValue().orThrow(fMapException);
-			}
-			catch (Exception e)
-			{
+			} catch (Exception e) {
 				throw fMapException.apply(e);
 			}
 		}
@@ -581,14 +518,10 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orUse(T rFailureResult)
-		{
-			try
-			{
+		public T orUse(T rFailureResult) {
+			try {
 				return getValue().orUse(rFailureResult);
-			}
-			catch (Exception e)
-			{
+			} catch (Exception e) {
 				return rFailureResult;
 			}
 		}
@@ -597,8 +530,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public Promise<T> withTimeout(long nTime, TimeUnit eUnit)
-		{
+		public Promise<T> withTimeout(long nTime, TimeUnit eUnit) {
 			return new CompletionStagePromise<>(rStage, nTime, eUnit);
 		}
 
@@ -610,8 +542,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * @throws Exception If the stage execution failed or a timeout has been
 		 *                   reached
 		 */
-		private Promise<T> getValue() throws Exception
-		{
+		private Promise<T> getValue() throws Exception {
 			return nTimeout == -1
 				   ? rStage.toCompletableFuture().get()
 				   : rStage.toCompletableFuture().get(nTimeout, eTimeUnit);
@@ -623,8 +554,8 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 	 *
 	 * @author eso
 	 */
-	static class ResolvedPromise<T> extends Promise<T>
-	{
+	static class ResolvedPromise<T> extends Promise<T> {
+
 		//~ Instance fields ----------------------------------------------------
 
 		private T rValue;
@@ -636,8 +567,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 *
 		 * @param rValue The resolved value
 		 */
-		public ResolvedPromise(T rValue)
-		{
+		public ResolvedPromise(T rValue) {
 			this.rValue = rValue;
 		}
 
@@ -647,8 +577,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public boolean cancel()
-		{
+		public boolean cancel() {
 			return false;
 		}
 
@@ -658,8 +587,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		@Override
 		@SuppressWarnings("unchecked")
 		public <R, N extends Monad<R, Promise<?>>> Promise<R> flatMap(
-			Function<? super T, N> fMap)
-		{
+			Function<? super T, N> fMap) {
 			return (Promise<R>) fMap.apply(rValue);
 		}
 
@@ -667,8 +595,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public State getState()
-		{
+		public State getState() {
 			return State.RESOLVED;
 		}
 
@@ -676,8 +603,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public Promise<T> onError(Consumer<Throwable> fHandler)
-		{
+		public Promise<T> onError(Consumer<Throwable> fHandler) {
 			return this;
 		}
 
@@ -685,16 +611,15 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public void orElse(Consumer<Throwable> fHandler)
-		{
+		public void orElse(Consumer<Throwable> fHandler) {
+			// nothing to do here if resolved
 		}
 
 		/***************************************
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orFail() throws Throwable
-		{
+		public T orFail() {
 			return rValue;
 		}
 
@@ -702,9 +627,8 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public <E extends Throwable> T orThrow(
-			Function<Throwable, E> fMapException) throws E
-		{
+		public <E extends Exception> T orThrow(
+			Function<Exception, E> fMapException) throws E {
 			return rValue;
 		}
 
@@ -712,8 +636,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orUse(T rFailureResult)
-		{
+		public T orUse(T rFailureResult) {
 			return rValue;
 		}
 
@@ -721,8 +644,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>>
 		 * {@inheritDoc}
 		 */
 		@Override
-		public Promise<T> withTimeout(long nTime, TimeUnit eUnit)
-		{
+		public Promise<T> withTimeout(long nTime, TimeUnit eUnit) {
 			return this;
 		}
 	}

@@ -1,5 +1,5 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// This file is a part of the 'objectrelations' project.
+// This file is a part of the 'esoco-monads' project.
 // Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,8 +30,8 @@ import java.util.function.Function;
  *
  * @author eso
  */
-public interface Functor<T>
-{
+public interface Functor<T> {
+
 	//~ Methods ----------------------------------------------------------------
 
 	/***************************************
@@ -55,10 +55,10 @@ public interface Functor<T>
 	 *
 	 * @return The functor's value
 	 *
-	 * @throws Throwable An exception signaling an invalid or indeterminable
+	 * @throws Exception An exception signaling an invalid or indeterminable
 	 *                   value
 	 */
-	public abstract T orFail() throws Throwable;
+	public abstract T orFail() throws Exception;
 
 	/***************************************
 	 * A consuming operation that either returns the functor's value or throws a
@@ -74,8 +74,8 @@ public interface Functor<T>
 	 *
 	 * @throws E The argument exception in the case of a failure
 	 */
-	public abstract <E extends Throwable> T orThrow(
-		Function<Throwable, E> fMapException) throws E;
+	public abstract <E extends Exception> T orThrow(
+		Function<Exception, E> fMapException) throws E;
 
 	/***************************************
 	 * A consuming operation that either returns the functor's value or returns
@@ -114,10 +114,8 @@ public interface Functor<T>
 	 *
 	 * @return The resulting functor for chained invocations
 	 */
-	default public Functor<T> then(Consumer<? super T> fConsumer)
-	{
-		return map(t ->
-		{
+	default Functor<T> then(Consumer<? super T> fConsumer) {
+		return map(t -> {
 			fConsumer.accept(t);
 
 			return t;

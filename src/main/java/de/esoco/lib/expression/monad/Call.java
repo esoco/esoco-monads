@@ -1,12 +1,12 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// This file is a part of the 'objectrelations' project.
+// This file is a part of the 'esoco-monads' project.
 // Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//	  http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,6 +25,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
 import static java.util.stream.Collectors.toList;
 
 
@@ -33,22 +34,26 @@ import static java.util.stream.Collectors.toList;
  * either supply a value or fail with an exception. Other than value-based
  * monads like {@link Option} or {@link Try} which are evaluated only once upon
  * creation, the supplier wrapped by a call will be evaluated each time one of
- * the consuming methods {@link #orUse(Object)}, {@link #orFail()},
- * {@link #orThrow(Function)}, or {@link #orElse(Consumer)} is invoked. If a
- * call is mapped with {@link #map(Function)} or {@link #flatMap(Function)} the
+ * the consuming methods {@link #orUse(Object)}, {@link #orFail()}, {@link
+ * #orThrow(Function)}, or {@link #orElse(Consumer)} is invoked. If a call is
+ * mapped with {@link #map(Function)} or {@link #flatMap(Function)} the
  * resulting call will also only be evaluated when a consuming method is
  * invoked.
  *
  * <p>Values are not cached, hence each evaluation will invoke the wrapped
  * supplier again. If caching is needed the supplier should either perform
- * caching by itself or could be wrapped with
- * {@link Functions#cached(java.util.function.Supplier)}.</p>
+ * caching by itself or could be wrapped with {@link
+ * Functions#cached(java.util.function.Supplier)}.</p>
  *
  * @author eso
  */
 public class Call<T> implements Monad<T, Call<?>> {
 
+	//~ Instance fields --------------------------------------------------------
+
 	private ThrowingSupplier<T> fSupplier;
+
+	//~ Constructors -----------------------------------------------------------
 
 	/***************************************
 	 * Creates a new instance.
@@ -56,9 +61,10 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 * @param fSupplier The value supplier
 	 */
 	private Call(ThrowingSupplier<T> fSupplier) {
-
 		this.fSupplier = fSupplier;
 	}
+
+	//~ Static methods ---------------------------------------------------------
 
 	/***************************************
 	 * Returns an always failing call.
@@ -68,7 +74,6 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 * @return the new instance
 	 */
 	public static <T> Call<T> error(Exception eError) {
-
 		return new Call<>(() -> { throw eError; });
 	}
 
@@ -80,7 +85,6 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 * @return The new instance
 	 */
 	public static <T> Call<T> of(ThrowingSupplier<T> fSupplier) {
-
 		return new Call<>(fSupplier);
 	}
 
@@ -96,23 +100,23 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 *         a collection of the results
 	 */
 	public static <T> Call<Collection<T>> ofAll(Collection<Call<T>> rCalls) {
+		List<ThrowingSupplier<T>> aSuppliers =
+			rCalls.stream().map(c -> c.fSupplier).collect(toList());
 
-		List<ThrowingSupplier<T>> aSuppliers = rCalls.stream().map(c ->
-		                                                           c.fSupplier)
-		                                             .collect(toList());
-
-		return new Call<>(() ->
-		                  aSuppliers.stream().map(Supplier::get).collect(toList()));
+		return new Call<>(
+			() -> aSuppliers.stream().map(Supplier::get).collect(toList()));
 	}
+
+	//~ Methods ----------------------------------------------------------------
 
 	/***************************************
 	 * {@inheritDoc}
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
-	public <V, R, N extends Monad<V, Call<?>>> Call<R> and(N rOther,
-	                                                       BiFunction<? super T, ? super V, ? extends R> fJoin) {
-
+	public <V, R, N extends Monad<V, Call<?>>> Call<R> and(
+		N											  rOther,
+		BiFunction<? super T, ? super V, ? extends R> fJoin) {
 		return (Call<R>) Monad.super.and(rOther, fJoin);
 	}
 
@@ -121,21 +125,18 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 */
 	@Override
 	public boolean equals(Object rObject) {
-
 		return this == rObject ||
-		       (rObject instanceof Call &&
-		        Objects.equals(fSupplier, ((Call<?>) rObject).fSupplier));
+			   (rObject instanceof Call &&
+				Objects.equals(fSupplier, ((Call<?>) rObject).fSupplier));
 	}
 
 	/***************************************
 	 * {@inheritDoc}
 	 */
 	@Override
-	@SuppressWarnings("unchecked")
-	public <R, N extends Monad<R, Call<?>>> Call<R> flatMap(Function<? super T, N> fMap) {
-
-		return Call.of(() ->
-		               ((Call<R>) fMap.apply(fSupplier.tryGet())).orFail());
+	public <R, N extends Monad<R, Call<?>>> Call<R> flatMap(
+		Function<? super T, N> fMap) {
+		return Call.of(() -> applyFlatMapping(fMap));
 	}
 
 	/***************************************
@@ -143,7 +144,6 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 */
 	@Override
 	public int hashCode() {
-
 		return Objects.hashCode(fSupplier);
 	}
 
@@ -153,7 +153,6 @@ public class Call<T> implements Monad<T, Call<?>> {
 	@Override
 	@SuppressWarnings("unchecked")
 	public <R> Call<R> map(Function<? super T, ? extends R> fMap) {
-
 		return flatMap(t -> Call.of(() -> fMap.apply(t)));
 	}
 
@@ -162,7 +161,6 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 */
 	@Override
 	public void orElse(Consumer<Throwable> fHandler) {
-
 		Try.now(fSupplier).orElse(fHandler);
 	}
 
@@ -170,8 +168,7 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public T orFail() throws Throwable {
-
+	public T orFail() throws Exception {
 		return Try.now(fSupplier).orFail();
 	}
 
@@ -179,9 +176,8 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public <E extends Throwable> T orThrow(Function<Throwable, E> fMapException)
-	                                throws E {
-
+	public <E extends Exception> T orThrow(Function<Exception, E> fMapException)
+		throws E {
 		return Try.now(fSupplier).orThrow(fMapException);
 	}
 
@@ -190,7 +186,6 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 */
 	@Override
 	public T orUse(T rDefault) {
-
 		return Try.now(fSupplier).orUse(rDefault);
 	}
 
@@ -199,7 +194,6 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 */
 	@Override
 	public Call<T> then(Consumer<? super T> fConsumer) {
-
 		return (Call<T>) Monad.super.then(fConsumer);
 	}
 
@@ -208,7 +202,6 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 */
 	@Override
 	public String toString() {
-
 		return String.format("%s[%s]", getClass().getSimpleName(), fSupplier);
 	}
 
@@ -218,7 +211,22 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 * @return The resulting try
 	 */
 	public Try<T> toTry() {
-
 		return Try.now(fSupplier);
+	}
+
+	/***************************************
+	 * Internal method to apply a {@link #flatMap(Function)} function to the
+	 * result.
+	 *
+	 * @param  fMap The mapping function
+	 *
+	 * @return The mapped Call instance
+	 *
+	 * @throws Exception If the
+	 */
+	@SuppressWarnings("unchecked")
+	private <R, N extends Monad<R, Call<?>>> R applyFlatMapping(
+		Function<? super T, N> fMap) throws Exception {
+		return ((Call<R>) fMap.apply(fSupplier.tryGet())).orFail();
 	}
 }

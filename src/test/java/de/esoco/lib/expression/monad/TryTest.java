@@ -1,5 +1,5 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// This file is a part of the 'objectrelations' project.
+// This file is a part of the 'esoco-monads' project.
 // Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,16 +39,15 @@ import static org.junit.Assert.fail;
  *
  * @author eso
  */
-public class TryTest
-{
+public class TryTest {
+
 	//~ Methods ----------------------------------------------------------------
 
 	/***************************************
 	 * Test of {@link Try#and(Monad, java.util.function.BiFunction)}.
 	 */
 	@Test
-	public void testAnd()
-	{
+	public void testAnd() {
 		LocalDate today = LocalDate.now();
 
 		Try<LocalDate> aLocalDateTry =
@@ -65,8 +64,7 @@ public class TryTest
 	 * Test of {@link Try#equals(Object)}.
 	 */
 	@Test
-	public void testEquals()
-	{
+	public void testEquals() {
 		assertEquals(Try.now(() -> "TEST"), (Try.now(() -> "TEST")));
 		assertEquals(
 			Try.now(() -> "42").map(Integer::parseInt),
@@ -83,8 +81,7 @@ public class TryTest
 	 * Test of {@link Try#exists()}.
 	 */
 	@Test
-	public void testExists()
-	{
+	public void testExists() {
 		assertTrue(Try.now(() -> "TEST").isSuccess());
 		assertFalse(Try.failure(new Exception()).isSuccess());
 		assertFalse(
@@ -95,8 +92,7 @@ public class TryTest
 	 * Test of {@link Try#failure(Throwable)}.
 	 */
 	@Test
-	public void testFailure()
-	{
+	public void testFailure() {
 		assertEquals("FAILED", Try.failure(new Exception()).orUse("FAILED"));
 
 		String[] message = new String[1];
@@ -106,23 +102,17 @@ public class TryTest
 		   .orElse(e -> message[0] = e.getMessage());
 		assertEquals("FAILED", message[0]);
 
-		try
-		{
+		try {
 			Try.failure(new Exception()).orFail();
 			fail();
-		}
-		catch (Throwable e)
-		{
+		} catch (Throwable e) {
 			// expected
 		}
 
-		try
-		{
+		try {
 			Try.failure(new Exception()).orThrow(RuntimeException::new);
 			fail();
-		}
-		catch (RuntimeException e)
-		{
+		} catch (RuntimeException e) {
 			// expected
 		}
 	}
@@ -131,8 +121,7 @@ public class TryTest
 	 * Test of {@link Try#filter(java.util.function.Predicate)}.
 	 */
 	@Test
-	public void testFilter()
-	{
+	public void testFilter() {
 		assertTrue(Try.now(() -> 42).filter(i -> i == 42).isSuccess());
 		assertFalse(Try.now(() -> 42).filter(i -> i < 42).isSuccess());
 		assertFalse(
@@ -145,8 +134,7 @@ public class TryTest
 	 * Test of {@link Try#flatMap(java.util.function.Function)}.
 	 */
 	@Test
-	public void testFlatMap()
-	{
+	public void testFlatMap() {
 		Try<Integer> aTry =
 			Try.now(() -> "42")
 			   .flatMap(s -> Try.now(() -> Integer.parseInt(s)));
@@ -163,8 +151,7 @@ public class TryTest
 	 * Test of {@link Try#equals(Object)}.
 	 */
 	@Test
-	public void testHashCode()
-	{
+	public void testHashCode() {
 		assertTrue(
 			Try.now(() -> "TEST").hashCode() ==
 			Try.now(() -> "TEST").hashCode());
@@ -178,19 +165,18 @@ public class TryTest
 	}
 
 	/***************************************
-	 * Test of {@link
-	 * Try#lazy(de.esoco.lib.expression.ThrowingSupplier)}.
+	 * Test of {@link Try#lazy(de.esoco.lib.expression.ThrowingSupplier)}.
 	 *
 	 * @throws Throwable
 	 */
 	@Test
-	public void testLazy() throws Throwable
-	{
+	public void testLazy() throws Throwable {
 		boolean[] evaluated = new boolean[1];
 
 		assertTrue(Try.lazy(() -> "42").isSuccess());
 		assertFalse(
-			Try.lazy(() -> { throw new AssertionError("ERROR"); }).isSuccess());
+			Try.lazy(() -> { throw new IllegalStateException("ERROR"); })
+			.isSuccess());
 
 		// make sure that [flat]map() is not executed
 		Try.lazy(() -> "42").then(s -> evaluated[0] = true);
@@ -216,8 +202,7 @@ public class TryTest
 	 * @throws Throwable
 	 */
 	@Test
-	public void testMap() throws Throwable
-	{
+	public void testMap() throws Throwable {
 		assertFalse(
 			Try.<String>failure(new Exception())
 			.map(Integer::parseInt)
@@ -234,8 +219,7 @@ public class TryTest
 	 * @throws Throwable
 	 */
 	@Test
-	public void testOfAll() throws Throwable
-	{
+	public void testOfAll() throws Throwable {
 		Try.ofAll(
    			Arrays.asList(
    				Try.now(() -> 1),
@@ -259,8 +243,7 @@ public class TryTest
 	 * @throws Throwable
 	 */
 	@Test
-	public void testOfSuccessful() throws Throwable
-	{
+	public void testOfSuccessful() throws Throwable {
 		Try.ofSuccessful(
    			Arrays.asList(
    				Try.now(() -> 1),
@@ -292,17 +275,13 @@ public class TryTest
 	 * Test of {@link Try#success(Object)}.
 	 */
 	@Test
-	public void testSuccess()
-	{
+	public void testSuccess() {
 		Try.success("TEST").then(s -> assertEquals("TEST", s));
 		assertEquals("SUCCESS", Try.success("SUCCESS").orUse("FAILED"));
 
-		try
-		{
+		try {
 			assertEquals("SUCCESS", Try.success("SUCCESS").orFail());
-		}
-		catch (Throwable e)
-		{
+		} catch (Throwable e) {
 			fail();
 		}
 	}
@@ -311,8 +290,7 @@ public class TryTest
 	 * Test of {@link Try#toString()}.
 	 */
 	@Test
-	public void testToString()
-	{
+	public void testToString() {
 		assertEquals("Success[TEST]", Try.success("TEST").toString());
 		assertEquals(
 			"Failure[ERROR]",
