@@ -179,17 +179,22 @@ public class TryTest {
 			.isSuccess());
 
 		// make sure that [flat]map() is not executed
-		Try.lazy(() -> "42").then(s -> evaluated[0] = true);
-		assertFalse(evaluated[0]);
+		Try<String> ts = Try.lazy(() -> "42").then(s -> evaluated[0] = true);
 
-		Try<Integer> aTry =
+		assertFalse(evaluated[0]);
+		ts.orFail();
+		assertTrue(evaluated[0]);
+
+		evaluated[0] = false;
+
+		Try<Integer> ti =
 			Try.lazy(() -> "42")
 			   .map(Integer::parseInt)
 			   .then(i -> evaluated[0] = true);
 
 		assertFalse(evaluated[0]);
-		assertTrue(aTry.isSuccess());
-		assertEquals(Lazy.class, aTry.getClass());
+		assertTrue(ti.isSuccess());
+		assertEquals(Lazy.class, ti.getClass());
 
 		assertEquals(
 			Integer.valueOf(42),

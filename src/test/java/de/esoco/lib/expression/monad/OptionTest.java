@@ -1,5 +1,5 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// This file is a part of the 'objectrelations' project.
+// This file is a part of the 'esoco-monads' project.
 // Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,16 +37,26 @@ import static org.junit.Assert.fail;
  *
  * @author eso
  */
-public class OptionTest
-{
+@SuppressWarnings("rawtypes")
+public class OptionTest extends MonadLawTest {
+
+	//~ Constructors -----------------------------------------------------------
+
+	/***************************************
+	 * Creates a new instance.
+	 */
+	@SuppressWarnings("unchecked")
+	public OptionTest() {
+		super(Option::of);
+	}
+
 	//~ Methods ----------------------------------------------------------------
 
 	/***************************************
 	 * Test of {@link Option#and(Monad, java.util.function.BiFunction)}.
 	 */
 	@Test
-	public void testAnd()
-	{
+	public void testAnd() {
 		LocalDate today = LocalDate.now();
 
 		Option<LocalDate> aLocalDateOption =
@@ -64,8 +74,7 @@ public class OptionTest
 	 * Test of {@link Option#equals(Object)}.
 	 */
 	@Test
-	public void testEquals()
-	{
+	public void testEquals() {
 		assertEquals(Option.of("TEST"), (Option.of("TEST")));
 		assertEquals(
 			Option.of("42").map(Integer::parseInt),
@@ -81,8 +90,7 @@ public class OptionTest
 	 * Test of {@link Option#exists()}.
 	 */
 	@Test
-	public void testExists()
-	{
+	public void testExists() {
 		assertTrue(Option.of("TEST").exists());
 		assertFalse(Option.of(null).exists());
 		assertFalse(Option.none().exists());
@@ -92,8 +100,7 @@ public class OptionTest
 	 * Test of {@link Option#filter(java.util.function.Predicate)}.
 	 */
 	@Test
-	public void testFilter()
-	{
+	public void testFilter() {
 		assertTrue(Option.of(42).filter(i -> i == 42).exists());
 		assertFalse(Option.of(42).filter(i -> i < 42).exists());
 		assertFalse(
@@ -106,8 +113,7 @@ public class OptionTest
 	 * Test of {@link Option#flatMap(java.util.function.Function)}.
 	 */
 	@Test
-	public void testFlatMap()
-	{
+	public void testFlatMap() {
 		Option<String> none = Option.none();
 
 		assertFalse(none.flatMap(s -> Option.of(s.length())).exists());
@@ -120,8 +126,7 @@ public class OptionTest
 	 * Test of {@link Option#equals(Object)}.
 	 */
 	@Test
-	public void testHashCode()
-	{
+	public void testHashCode() {
 		assertTrue(
 			Option.of("TEST").hashCode() == Option.of("TEST").hashCode());
 		assertTrue(
@@ -140,8 +145,7 @@ public class OptionTest
 	 * Test of {@link Option#map(Function)}.
 	 */
 	@Test
-	public void testMap()
-	{
+	public void testMap() {
 		assertFalse(Option.of((String) null).map(s -> s.length()).exists());
 		Option.of("42").map(Integer::parseInt).then(i -> assertTrue(i == 42));
 	}
@@ -150,8 +154,7 @@ public class OptionTest
 	 * Test of {@link Option#none()}.
 	 */
 	@Test
-	public void testNone()
-	{
+	public void testNone() {
 		assertTrue(Option.none() == Option.of(null));
 		assertTrue(Option.of(null) == Option.none());
 		Option.none().then(v -> fail());
@@ -161,8 +164,7 @@ public class OptionTest
 	 * Test of {@link Option#ofAll(java.util.Collection)}.
 	 */
 	@Test
-	public void testOfAll()
-	{
+	public void testOfAll() {
 		boolean[] result = new boolean[1];
 
 		Option.ofAll(Arrays.asList(Option.of(1), Option.of(2), Option.of(3)))
@@ -185,8 +187,7 @@ public class OptionTest
 	 * Test of {@link Option#ofExisting(Stream)}.
 	 */
 	@Test
-	public void testOfExisting()
-	{
+	public void testOfExisting() {
 		Option.ofExisting(
 	  			Arrays.asList(Option.of(1), Option.of(2), Option.of(3))
 	  			.stream())
@@ -217,32 +218,25 @@ public class OptionTest
 	 * {@link Option#orFail()}.
 	 */
 	@Test
-	public void testOr()
-	{
+	public void testOr() {
 		boolean[] result = new boolean[1];
 
 		Option.none().then(v -> fail()).orElse(e -> result[0] = true);
 		assertTrue(result[0]);
 		assertEquals("DEFAULT", Option.none().orUse("DEFAULT"));
 
-		try
-		{
+		try {
 			Option.none().orThrow(e -> new Exception("THROW", e));
 			fail();
-		}
-		catch (Throwable e)
-		{
+		} catch (Throwable e) {
 			assertEquals(Exception.class, e.getClass());
 			assertEquals("THROW", e.getMessage());
 		}
 
-		try
-		{
+		try {
 			Option.none().orFail();
 			fail();
-		}
-		catch (Throwable e)
-		{
+		} catch (Throwable e) {
 			assertEquals(NullPointerException.class, e.getClass());
 		}
 	}
@@ -251,8 +245,7 @@ public class OptionTest
 	 * Test of {@link Option#toString()}.
 	 */
 	@Test
-	public void testToString()
-	{
+	public void testToString() {
 		assertEquals("TEST", Option.of("TEST").toString());
 		assertEquals("[none]", Option.none().toString());
 	}
