@@ -228,7 +228,7 @@ public class Option<T> implements Monad<T, Option<?>> {
 	 *
 	 * <p>If the mapping function throws a {@link NullPointerException} it will
 	 * be caught and the returned option will be {@link #none()}. This allows to
-	 * use functions that are not NULL-aware as an argument. It has the small
+	 * use functions that are not NULL-aware as an argument. It has the
 	 * limitation that NPEs caused by nested code will not be thrown.</p>
 	 *
 	 * @param  fMap The mapping function

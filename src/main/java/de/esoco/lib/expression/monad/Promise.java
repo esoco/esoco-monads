@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
@@ -67,17 +68,6 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 	}
 
 	/***************************************
-	 * Returns a new promise with an already resolved value.
-	 *
-	 * @param  rValue The resolved value
-	 *
-	 * @return The already resolved promise
-	 */
-	public static <T> Promise<T> of(T rValue) {
-		return new ResolvedPromise<>(rValue);
-	}
-
-	/***************************************
 	 * Returns a new <b>asynchronous</b> promise for an value provided by a
 	 * {@link CompletionStage} (e.g. a {@link CompletableFuture}).
 	 *
@@ -86,7 +76,8 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 	 * @return The new asynchronous promise
 	 */
 	public static <T> Promise<T> of(CompletionStage<T> rStage) {
-		return new CompletionStagePromise<>(rStage.thenApply(Promise::of));
+		return new CompletionStagePromise<>(
+			rStage.thenApply(Promise::resolved));
 	}
 
 	/***************************************
@@ -166,6 +157,17 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 				.onError(aStage::completeExceptionally));
 
 		return Promise.of(aStage);
+	}
+
+	/***************************************
+	 * Returns a new promise with an already resolved value.
+	 *
+	 * @param  rValue The resolved value
+	 *
+	 * @return The already resolved promise
+	 */
+	public static <T> Promise<T> resolved(T rValue) {
+		return new ResolvedPromise<>(rValue);
 	}
 
 	//~ Methods ----------------------------------------------------------------
@@ -261,7 +263,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 	 */
 	@Override
 	public <R> Promise<R> map(Function<? super T, ? extends R> fMap) {
-		return flatMap(t -> Promise.of(fMap.apply(t)));
+		return flatMap(t -> Promise.resolved(fMap.apply(t)));
 	}
 
 	/***************************************
@@ -438,6 +440,28 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
+		public boolean equals(Object rObject) {
+			if (this == rObject) {
+				return true;
+			}
+
+			if (rObject == null ||
+				rObject.getClass() != CompletionStagePromise.class) {
+				return false;
+			}
+
+			CompletionStagePromise<?> rOther =
+				(CompletionStagePromise<?>) rObject;
+
+			return nTimeout == rOther.nTimeout &&
+				   eTimeUnit == rOther.eTimeUnit &&
+				   Objects.equals(rStage, rOther.rStage);
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
 		public <R, N extends Monad<R, Promise<?>>> Promise<R> flatMap(
 			Function<? super T, N> fMap) {
 			return new CompletionStagePromise<>(
@@ -465,6 +489,14 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 			} else {
 				return State.ACTIVE;
 			}
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public int hashCode() {
+			return Objects.hash(rStage, eTimeUnit, nTimeout);
 		}
 
 		/***************************************
@@ -542,7 +574,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		 * @throws Exception If the stage execution failed or a timeout has been
 		 *                   reached
 		 */
-		private Promise<T> getValue() throws Exception {
+		Promise<T> getValue() throws Exception {
 			return nTimeout == -1
 				   ? rStage.toCompletableFuture().get()
 				   : rStage.toCompletableFuture().get(nTimeout, eTimeUnit);
@@ -585,6 +617,18 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
+		public boolean equals(Object rObject) {
+			return this == rObject ||
+				   (rObject instanceof ResolvedPromise &&
+					Objects.equals(
+					rValue,
+					((ResolvedPromise<?>) rObject).rValue));
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
 		@SuppressWarnings("unchecked")
 		public <R, N extends Monad<R, Promise<?>>> Promise<R> flatMap(
 			Function<? super T, N> fMap) {
@@ -597,6 +641,14 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		@Override
 		public State getState() {
 			return State.RESOLVED;
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public int hashCode() {
+			return Objects.hashCode(rValue);
 		}
 
 		/***************************************

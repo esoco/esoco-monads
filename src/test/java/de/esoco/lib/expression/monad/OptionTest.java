@@ -21,6 +21,7 @@ import de.esoco.lib.datatype.Pair;
 import java.time.LocalDate;
 
 import java.util.Arrays;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.junit.Test;
@@ -38,17 +39,7 @@ import static org.junit.Assert.fail;
  * @author eso
  */
 @SuppressWarnings("rawtypes")
-public class OptionTest extends MonadLawTest {
-
-	//~ Constructors -----------------------------------------------------------
-
-	/***************************************
-	 * Creates a new instance.
-	 */
-	@SuppressWarnings("unchecked")
-	public OptionTest() {
-		super(Option::of);
-	}
+public class OptionTest extends MonadTest {
 
 	//~ Methods ----------------------------------------------------------------
 
@@ -148,6 +139,28 @@ public class OptionTest extends MonadLawTest {
 	public void testMap() {
 		assertFalse(Option.of((String) null).map(s -> s.length()).exists());
 		Option.of("42").map(Integer::parseInt).then(i -> assertTrue(i == 42));
+	}
+
+	/***************************************
+	 * {@inheritDoc}
+	 */
+	@Override
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testMonadLaws() {
+		// default test
+		testAllMonadLaws(Option::of);
+		testAllMonadLaws(Option::ofRequired);
+
+		// ensure monad laws for NULL option (other than Optional)
+		testAllMonadLaws(null, Option::of, v -> v, v -> v);
+
+		// ensure monad laws if value mapped to NULL
+		Function<String, String> f = s -> (s.equals("2")) ? null : s;
+		Function<String, String> g = s -> s == null ? "null" : s;
+
+		testAllMonadLaws("1", Option::of, f, g);
+		testAllMonadLaws("2", Option::of, f, g);
 	}
 
 	/***************************************

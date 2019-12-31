@@ -1,5 +1,5 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// This file is a part of the 'objectrelations' project.
+// This file is a part of the 'esoco-monads' project.
 // Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,8 +41,9 @@ import static org.junit.Assert.fail;
  *
  * @author eso
  */
-public class PromiseTest
-{
+@SuppressWarnings("rawtypes")
+public class PromiseTest extends MonadTest {
+
 	//~ Methods ----------------------------------------------------------------
 
 	/***************************************
@@ -51,8 +52,7 @@ public class PromiseTest
 	 * @throws Throwable
 	 */
 	@Test
-	public void testAnd() throws Throwable
-	{
+	public void testAnd() throws Throwable {
 		LocalDate today = LocalDate.now();
 
 		Promise<LocalDate> aLocalDatePromise =
@@ -74,9 +74,8 @@ public class PromiseTest
 	 * @throws Throwable
 	 */
 	@Test
-	public void testFlatMap() throws Throwable
-	{
-		Promise.of("42")
+	public void testFlatMap() throws Throwable {
+		Promise.resolved("42")
 			   .flatMap(s -> Promise.of(() -> Integer.parseInt(s)))
 			   .then(i -> assertEquals(Integer.valueOf(42), i))
 			   .orFail();
@@ -88,12 +87,21 @@ public class PromiseTest
 	 * @throws Throwable
 	 */
 	@Test
-	public void testMap() throws Throwable
-	{
+	public void testMap() throws Throwable {
 		Promise.of(() -> "42")
 			   .map(Integer::parseInt)
 			   .then(i -> assertEquals(Integer.valueOf(42), i))
 			   .orFail();
+	}
+
+	/***************************************
+	 * {@inheritDoc}
+	 */
+	@Override
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testMonadLaws() {
+		testAllMonadLaws(Promise::resolved);
 	}
 
 	/***************************************
@@ -102,8 +110,7 @@ public class PromiseTest
 	 * @throws Throwable
 	 */
 	@Test
-	public void testOfAll() throws Throwable
-	{
+	public void testOfAll() throws Throwable {
 		List<Promise<Integer>> values =
 			new ArrayList<>(
 				Arrays.asList(
@@ -130,11 +137,10 @@ public class PromiseTest
 	 * @throws Throwable
 	 */
 	@Test
-	public void testOfAny() throws Throwable
-	{
+	public void testOfAny() throws Throwable {
 		List<Promise<String>> values =
 			Arrays.asList(
-				Promise.of("1"),
+				Promise.resolved("1"),
 				Promise.of(() -> "2"),
 				Promise.of(() -> "3"));
 
@@ -158,8 +164,7 @@ public class PromiseTest
 	 * Test of {@link Promise#orFail()}.
 	 */
 	@Test
-	public void testOrElse()
-	{
+	public void testOrElse() {
 		Promise<String> p	    = Promise.failure(new Exception());
 		Throwable[]     aResult = new Throwable[1];
 
@@ -173,17 +178,13 @@ public class PromiseTest
 	 * Test of {@link Promise#orFail()}.
 	 */
 	@Test
-	public void testOrFail()
-	{
+	public void testOrFail() {
 		Promise<String> p = Promise.failure(new Exception());
 
-		try
-		{
+		try {
 			p.orFail();
 			fail();
-		}
-		catch (Throwable e)
-		{
+		} catch (Throwable e) {
 			// expected
 		}
 	}
@@ -192,18 +193,14 @@ public class PromiseTest
 	 * Test of {@link Promise#orThrow(java.util.function.Function)}.
 	 */
 	@Test
-	public void testOrThrow()
-	{
+	public void testOrThrow() {
 		Exception	    eError = new Exception();
 		Promise<String> p	   = Promise.failure(new Exception());
 
-		try
-		{
+		try {
 			p.orThrow(e -> eError);
 			fail();
-		}
-		catch (Throwable e)
-		{
+		} catch (Throwable e) {
 			assertEquals(eError, e);
 		}
 	}
@@ -212,14 +209,14 @@ public class PromiseTest
 	 * Test of {@link Promise#orUse(Object)}.
 	 */
 	@Test
-	public void testOrUse()
-	{
+	public void testOrUse() {
 		Promise<String> p = Promise.of(() -> 42).map(i -> Integer.toString(i));
 
 		assertEquals("42", p.orUse(null));
 		assertTrue(p.isResolved());
 
-		p = Promise.of(() -> 42).flatMap(i -> Promise.of(Integer.toString(i)));
+		p = Promise.of(() -> 42)
+				   .flatMap(i -> Promise.resolved(Integer.toString(i)));
 
 		assertEquals("42", p.orUse(null));
 		assertTrue(p.isResolved());
@@ -238,8 +235,7 @@ public class PromiseTest
 	 * Test of {@link Promise#then(Consumer)}.
 	 */
 	@Test
-	public void testThen()
-	{
+	public void testThen() {
 		Promise.of(() -> "TEST").then(s -> assertEquals("TEST", s));
 		Promise.of(() -> null).then(s -> assertNull(s));
 	}

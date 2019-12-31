@@ -32,18 +32,22 @@ import static java.util.stream.Collectors.toList;
 /********************************************************************
  * A {@link Monad} implementation for deferred (lazy) function calls that will
  * either supply a value or fail with an exception. Other than value-based
- * monads like {@link Option} or {@link Try} which are evaluated only once upon
- * creation, the supplier wrapped by a call will be evaluated each time one of
- * the consuming methods {@link #orUse(Object)}, {@link #orFail()}, {@link
+ * monads like {@link Option} which are evaluated only once upon creation, the
+ * supplier wrapped by a call will be evaluated each time one of the consuming
+ * methods {@link #orUse(Object)}, {@link #orFail()}, {@link
  * #orThrow(Function)}, or {@link #orElse(Consumer)} is invoked. If a call is
- * mapped with {@link #map(Function)} or {@link #flatMap(Function)} the
- * resulting call will also only be evaluated when a consuming method is
+ * mapped with {@link #map(Function)} or {@link #flatMap(Function)} a new call
+ * will be created that is also only be evaluated when a consuming method is
  * invoked.
  *
- * <p>Values are not cached, hence each evaluation will invoke the wrapped
- * supplier again. If caching is needed the supplier should either perform
- * caching by itself or could be wrapped with {@link
- * Functions#cached(java.util.function.Supplier)}.</p>
+ * <p>Like {@link Try#lazy(ThrowingSupplier) lazy tries} calls can may appear as
+ * not complying with the monad laws although they effectively they are. That is
+ * caused by the fact that call (flat) mappings are build by chaining anonymous
+ * suppliers which cannot be detected as equal, even if they are. But when using
+ * calls and mapped call chains they fully obey the monad laws because at the
+ * end of the call chain theres's always a resolved value which is equal for
+ * both sides of the monad law equations. Equality comparisons of unresolved
+ * calls should be avoided as they will almost always yield FALSE.</p>
  *
  * @author eso
  */
@@ -198,6 +202,16 @@ public class Call<T> implements Monad<T, Call<?>> {
 	}
 
 	/***************************************
+	 * Converts this call into a lazy {@link Try} (see {@link
+	 * Try#lazy(ThrowingSupplier)}.
+	 *
+	 * @return The resulting try
+	 */
+	public Try<T> toLazy() {
+		return Try.lazy(fSupplier);
+	}
+
+	/***************************************
 	 * {@inheritDoc}
 	 */
 	@Override
@@ -206,7 +220,9 @@ public class Call<T> implements Monad<T, Call<?>> {
 	}
 
 	/***************************************
-	 * Executes this call and returns a {@link Try} representing the result.
+	 * Converts this call into {@link Try} that contains either the result of a
+	 * successful execution or any occurring error (see {@link
+	 * Try#now(ThrowingSupplier)}.
 	 *
 	 * @return The resulting try
 	 */

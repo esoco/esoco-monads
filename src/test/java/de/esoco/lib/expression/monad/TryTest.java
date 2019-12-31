@@ -39,7 +39,8 @@ import static org.junit.Assert.fail;
  *
  * @author eso
  */
-public class TryTest {
+@SuppressWarnings("rawtypes")
+public class TryTest extends MonadTest {
 
 	//~ Methods ----------------------------------------------------------------
 
@@ -216,6 +217,20 @@ public class TryTest {
 		   .map(Integer::parseInt)
 		   .then(i -> assertTrue(i == 42))
 		   .orFail();
+	}
+
+	/***************************************
+	 * {@inheritDoc}
+	 */
+	@Override
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testMonadLaws() {
+		testAllMonadLaws(Try::success);
+		testAllMonadLaws(v -> Try.now(() -> v));
+
+		// Lazy will only obey laws after it has been resolved
+		testAllMonadLaws(v -> ((Lazy<Object>) Try.lazy(() -> v)).getResult());
 	}
 
 	/***************************************

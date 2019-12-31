@@ -1,5 +1,5 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// This file is a part of the 'objectrelations' project.
+// This file is a part of the 'esoco-monads' project.
 // Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,16 +37,16 @@ import static org.junit.Assert.fail;
  *
  * @author eso
  */
-public class CallTest
-{
+@SuppressWarnings("rawtypes")
+public class CallTest extends MonadTest {
+
 	//~ Methods ----------------------------------------------------------------
 
 	/***************************************
 	 * Test of {@link Call#and(Monad, java.util.function.BiFunction)}.
 	 */
 	@Test
-	public void testAnd()
-	{
+	public void testAnd() {
 		LocalDate today = LocalDate.now();
 
 		Call<LocalDate> aLocalDateCall =
@@ -64,8 +64,7 @@ public class CallTest
 	 * Test of {@link Call#equals(Object)}.
 	 */
 	@Test
-	public void testEquals()
-	{
+	public void testEquals() {
 		ThrowingSupplier<String> fTestSupplier = () -> "TEST";
 
 		assertEquals(Call.of(fTestSupplier), (Call.of(fTestSupplier)));
@@ -79,8 +78,7 @@ public class CallTest
 	 * Test of {@link Call#error(Exception)}.
 	 */
 	@Test
-	public void testError()
-	{
+	public void testError() {
 		Call<String> failing = Call.error(new Exception("ERROR"));
 
 		assertEquals("FAILED", failing.map(v -> "SUCCESS").orUse("FAILED"));
@@ -92,8 +90,7 @@ public class CallTest
 	 * @throws Throwable
 	 */
 	@Test
-	public void testFlatMap() throws Throwable
-	{
+	public void testFlatMap() throws Throwable {
 		Call.of(() -> "42")
 			.flatMap(s -> Call.of(() -> Integer.parseInt(s)))
 			.then(i -> assertTrue(i == 42))
@@ -104,8 +101,7 @@ public class CallTest
 	 * Test of {@link Call#equals(Object)}.
 	 */
 	@Test
-	public void testHashCode()
-	{
+	public void testHashCode() {
 		ThrowingSupplier<String> fTestSupplier = () -> "TEST";
 
 		assertTrue(
@@ -119,12 +115,22 @@ public class CallTest
 	 * @throws Throwable
 	 */
 	@Test
-	public void testMap() throws Throwable
-	{
+	public void testMap() throws Throwable {
 		Call.of(() -> "42")
 			.map(Integer::parseInt)
 			.then(i -> assertTrue(i == 42))
 			.orFail();
+	}
+
+	/***************************************
+	 * {@inheritDoc}
+	 */
+	@Override
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testMonadLaws() {
+		// needs to be converted to try to test resolved values for equality
+		testAllMonadLaws(v -> Call.of(() -> v).toTry());
 	}
 
 	/***************************************
@@ -133,8 +139,7 @@ public class CallTest
 	 * @throws Throwable
 	 */
 	@Test
-	public void testOfAll() throws Throwable
-	{
+	public void testOfAll() throws Throwable {
 		Call.ofAll(
 				Arrays.asList(
 					Call.of(() -> 1),
@@ -158,32 +163,25 @@ public class CallTest
 	 * Call#orFail()}.
 	 */
 	@Test
-	public void testOr()
-	{
+	public void testOr() {
 		Call<Object> aError = Call.error(new Exception("ERROR"));
 
 		aError.then(v -> fail())
 			  .orElse(e -> assertEquals("ERROR", e.getMessage()));
 		assertEquals("DEFAULT", aError.orUse("DEFAULT"));
 
-		try
-		{
+		try {
 			aError.orThrow(Function.identity());
 			fail();
-		}
-		catch (Throwable e)
-		{
+		} catch (Throwable e) {
 			assertEquals(Exception.class, e.getClass());
 			assertEquals("ERROR", e.getMessage());
 		}
 
-		try
-		{
+		try {
 			aError.orFail();
 			fail();
-		}
-		catch (Throwable e)
-		{
+		} catch (Throwable e) {
 			assertEquals(Exception.class, e.getClass());
 			assertEquals("ERROR", e.getMessage());
 		}

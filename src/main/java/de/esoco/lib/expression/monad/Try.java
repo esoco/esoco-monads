@@ -43,8 +43,10 @@ import static java.util.stream.Collectors.toList;
  * be evaluated upon creation of the try instance. In the case of lazy
  * executions the supplier will only be evaluated when the Try is consumed by
  * invoking one of the corresponding methods like {@link #orUse(Object)} or
- * {@link #orFail()}. This will also be the case for (flat) mapped/chained lazy
- * tries.</p>
+ * {@link #orFail()}. This will also be the case for mapped lazy tries. A side
+ * effect of this is that lazy tries may appear as not complying with the monad
+ * laws, although effectively they are (see method comment of {@link
+ * #lazy(ThrowingSupplier)} for details).</p>
  *
  * <p>The supplier of a try, even of a lazy one, is always only evaluated once.
  * Each subsequent consumption will yield the same result. If a supplier should
@@ -83,8 +85,18 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	 * result. {@link #map(Function) Mapping} or {@link #flatMap(Function) flat
 	 * mapping} a lazy try will create another unresolved, lazy instance.
 	 *
-	 * <p>An instance that evaluates the supplier immediately can be created
-	 * with {@link #now(ThrowingSupplier)}.</p>
+	 * <p>A side effect of lazy tries not evaluating the argument supplier
+	 * immediately is that an unresolved lazy try does not directly comply with
+	 * the monad laws. This is because when (flat) mapped additional wrapping
+	 * suppliers will be created that will also be evaluated lazily. Until
+	 * resolving tests between otherwise identical lazy tries will fail because
+	 * the created lambdas will not be recognized as equal. Resolved lazy tries
+	 * obey the monad laws, so lazy tries are effectively compliant with the
+	 * laws. Equality tests should therefore only be used with caution on lazy
+	 * tries (or better, not at all).</p>
+	 *
+	 * <p>An instance that evaluates the supplier immediately and directly obeys
+	 * the monad laws can be created with {@link #now(ThrowingSupplier)}.</p>
 	 *
 	 * @param  fSupplier The throwing supplier to evaluate lazily
 	 *
@@ -503,14 +515,6 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		}
 
 		/***************************************
-		 * {@inheritDoc}
-		 */
-		@Override
-		Object getDescribingValue() {
-			return aResult.exists() ? aResult.orFail() : fValueSupplier;
-		}
-
-		/***************************************
 		 * Internal method to apply a {@link #flatMap(Function)} function to the
 		 * result of this instance.
 		 *
@@ -521,9 +525,17 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 * @throws Exception If accessing a try result fails
 		 */
 		@SuppressWarnings("unchecked")
-		private <R, N extends Monad<R, Try<?>>> R applyFlatMapping(
+		<R, N extends Monad<R, Try<?>>> R applyFlatMapping(
 			Function<? super T, N> fMap) throws Exception {
 			return ((Try<R>) fMap.apply(getResult().orFail())).orFail();
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		Object getDescribingValue() {
+			return aResult.exists() ? aResult.orFail() : fValueSupplier;
 		}
 
 		/***************************************
@@ -532,13 +544,13 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 *
 		 * @return A try of the (evaluated) result
 		 */
-		private Try<T> getResult() {
+		Try<T> getResult() {
 			if (!aResult.exists()) {
-				aResult = Option.of(Try.now(fValueSupplier));
+				aResult = Option.of(now(fValueSupplier));
 
 				// if supplier returned NULL convert to success
 				if (!aResult.exists()) {
-					aResult = Option.of(Try.success(null));
+					aResult = Option.of(success(null));
 				}
 			}
 
