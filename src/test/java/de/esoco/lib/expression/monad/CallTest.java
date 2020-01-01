@@ -1,6 +1,6 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // This file is a part of the 'esoco-monads' project.
-// Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
+// Copyright 2020 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -129,8 +129,23 @@ public class CallTest extends MonadTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testMonadLaws() {
-		// needs to be converted to try to test resolved values for equality
-		testAllMonadLaws(v -> Call.of(() -> v).toTry());
+		// explicit monad law tests for calls because they need to be resolved
+		// before equality tests
+		Function<String, String>	   f1     = mapString("1");
+		Function<String, String>	   f2     = mapString("2");
+		Function<String, Call<String>> toCall = v -> Call.of(() -> v);
+
+		Call<String> call = Call.of(() -> TEST_VALUE);
+
+		assertEquals(
+			call.flatMap(f1.andThen(toCall)).toTry(),
+			f1.andThen(toCall).apply(TEST_VALUE).toTry());
+		assertEquals(call.flatMap(toCall).toTry(), call.toTry());
+		assertEquals(
+			call.flatMap(f1.andThen(toCall))
+			.flatMap(f2.andThen(toCall))
+			.toTry(),
+			call.flatMap(f1.andThen(f2).andThen(toCall)).toTry());
 	}
 
 	/***************************************

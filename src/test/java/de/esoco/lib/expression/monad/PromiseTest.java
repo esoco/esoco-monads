@@ -1,6 +1,6 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // This file is a part of the 'esoco-monads' project.
-// Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
+// Copyright 2020 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import org.junit.Test;
 
@@ -96,12 +97,36 @@ public class PromiseTest extends MonadTest {
 
 	/***************************************
 	 * {@inheritDoc}
+	 *
+	 * @throws Exception
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
 	@Test
-	public void testMonadLaws() {
+	public void testMonadLaws() throws Exception {
 		testAllMonadLaws(Promise::resolved);
+
+		// explicit monad law tests for unresolved promises because these need
+		// to be resolved before equality tests
+		Function<String, String> f1 = mapString("1");
+		Function<String, String> f2 = mapString("2");
+
+		assertEquals(
+			Promise.of(() -> TEST_VALUE)
+			.flatMap(f1.andThen(Promise::resolved))
+			.await(),
+			f1.andThen(Promise::resolved).apply(TEST_VALUE).await());
+		assertEquals(
+			Promise.of(() -> TEST_VALUE).flatMap(Promise::resolved).await(),
+			Promise.of(() -> TEST_VALUE).await());
+		assertEquals(
+			Promise.of(() -> TEST_VALUE)
+			.flatMap(f1.andThen(Promise::resolved))
+			.flatMap(f2.andThen(Promise::resolved))
+			.await(),
+			Promise.of(() -> TEST_VALUE)
+			.flatMap(f1.andThen(f2).andThen(Promise::resolved))
+			.await());
 	}
 
 	/***************************************
@@ -123,7 +148,7 @@ public class PromiseTest extends MonadTest {
 		assertEquals(3, p.orFail().size());
 		assertTrue(p.isResolved());
 
-		Exception eError = new Exception("TEST");
+		Exception eError = new Exception(TEST_VALUE);
 
 		values.add(Promise.failure(eError));
 		Promise.ofAll(values)
@@ -151,7 +176,7 @@ public class PromiseTest extends MonadTest {
 
 		values =
 			Arrays.asList(
-				Promise.failure(new Exception("TEST")),
+				Promise.failure(new Exception(TEST_VALUE)),
 				Promise.of(() -> "2"),
 				Promise.of(() -> "3"));
 
@@ -236,7 +261,7 @@ public class PromiseTest extends MonadTest {
 	 */
 	@Test
 	public void testThen() {
-		Promise.of(() -> "TEST").then(s -> assertEquals("TEST", s));
+		Promise.of(() -> TEST_VALUE).then(s -> assertEquals(TEST_VALUE, s));
 		Promise.of(() -> null).then(s -> assertNull(s));
 	}
 }

@@ -1,6 +1,6 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // This file is a part of the 'esoco-monads' project.
-// Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
+// Copyright 2020 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,6 +38,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 public abstract class MonadTest<M extends Monad<String, M>> {
 
+	//~ Static fields/initializers ---------------------------------------------
+
+	/** A string value for testing monad laws. */
+	protected static final String TEST_VALUE = "TEST";
+
 	//~ Methods ----------------------------------------------------------------
 
 	/***************************************
@@ -46,8 +51,22 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 	 * recommended (see class description) also need to suppress unchecked
 	 * warnings for this method as the exact monad type is not known on
 	 * invocation.
+	 *
+	 * @throws Exception If the test fails
 	 */
-	public abstract void testMonadLaws();
+	public abstract void testMonadLaws() throws Exception;
+
+	/***************************************
+	 * Helper method that returns a function which maps a string into another by
+	 * appending a suffix.
+	 *
+	 * @param  suffix The test-specific suffix to append
+	 *
+	 * @return The mapping function
+	 */
+	protected Function<String, String> mapString(String suffix) {
+		return s -> s + "-MAPPED-" + suffix;
+	}
 
 	/***************************************
 	 * Tests all monad laws with default input value and mapping functions.
@@ -55,7 +74,7 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 	 * @param fUnit The unit function to create a new monad
 	 */
 	protected void testAllMonadLaws(Function<String, M> fUnit) {
-		testAllMonadLaws("TEST", fUnit, mapString("1"), mapString("2"));
+		testAllMonadLaws(TEST_VALUE, fUnit, mapString("1"), mapString("2"));
 	}
 
 	/***************************************
@@ -78,7 +97,7 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 	/***************************************
 	 * Test of monad law 1, left identity:
 	 *
-	 * <pre>M(V).flatMap(F) == F(V)</pre>
+	 * <pre>M(V).flatMap(F(V)) == F(V)</pre>
 	 *
 	 * @param testValue The test input value
 	 * @param fUnit     The unit function to create a new monad
@@ -87,6 +106,7 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 	protected void testLaw1LeftIdentity(String					 testValue,
 										Function<String, M>		 fUnit,
 										Function<String, String> fMap) {
+		// always resolve with orUse() so that
 		assertEquals(
 			fUnit.apply(testValue).flatMap(fMap.andThen(fUnit)),
 			fMap.andThen(fUnit).apply(testValue));
@@ -95,7 +115,7 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 	/***************************************
 	 * Test of monad law 2, right identity:
 	 *
-	 * <pre>M(V).flatMap(M.unit) == M(V)</pre>
+	 * <pre>M(V).flatMap(M(V)) == M(V)</pre>
 	 *
 	 * @param testValue The test input value
 	 * @param fUnit     The unit function to create a new monad
@@ -111,7 +131,7 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 	/***************************************
 	 * Test of monad law 3, associativity:
 	 *
-	 * <pre>(M(V).flatMap(F1)).flatMap(F2) == M(V).flatMap(F2(F1(V)))</pre>
+	 * <pre>M(V).flatMap(F1(V)).flatMap(F2(V')) == M(V).flatMap(F2(F1(V)))</pre>
 	 *
 	 * @param testValue The test input value
 	 * @param fUnit     The unit function to create a new monad
@@ -127,17 +147,5 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 		assertEquals(
 			monad.flatMap(f1.andThen(fUnit)).flatMap(f2.andThen(fUnit)),
 			monad.flatMap(f1.andThen(f2).andThen(fUnit)));
-	}
-
-	/***************************************
-	 * Helper method that returns a function which maps a string into another by
-	 * appending a suffix.
-	 *
-	 * @param  suffix The test-specific suffix to append
-	 *
-	 * @return The mapping function
-	 */
-	private Function<String, String> mapString(String suffix) {
-		return s -> s + "-MAPPED-" + suffix;
 	}
 }

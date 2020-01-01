@@ -1,6 +1,6 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // This file is a part of the 'esoco-monads' project.
-// Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
+// Copyright 2020 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -171,6 +171,16 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 	}
 
 	//~ Methods ----------------------------------------------------------------
+
+	/***************************************
+	 * Awaits the resolving of this promise and returns a resolved promise
+	 * instance that can be processed immediately.
+	 *
+	 * @return The resolved promise
+	 *
+	 * @throws Exception If the resolving fails
+	 */
+	public abstract Promise<T> await() throws Exception;
 
 	/***************************************
 	 * Cancels the asynchronous execution of this promise if it hasn't
@@ -432,6 +442,14 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
+		public Promise<T> await() throws Exception {
+			return getValue();
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
 		public boolean cancel() {
 			return rStage.toCompletableFuture().cancel(false);
 		}
@@ -604,6 +622,14 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		}
 
 		//~ Methods ------------------------------------------------------------
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public Promise<T> await() {
+			return this;
+		}
 
 		/***************************************
 		 * {@inheritDoc}
