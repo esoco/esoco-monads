@@ -9,11 +9,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      with:
-        path: main
     - uses: actions/checkout@v2
       with:
         repository: esoco/esoco-common
+        path: ../esoco-common
     - name: Set up JDK 1.8
       uses: actions/setup-java@v1
       with:
