@@ -1,12 +1,13 @@
-# The esoco-monads project
+# The esoco-monads projecto
 
 Travis build status:  
 [![Build Status](https://www.travis-ci.org/esoco/esoco-monads.svg?branch=master)](https://www.travis-ci.org/esoco/esoco-monads)
 
-This project defines generic Java interfaces for functors and monads as well as implementations of several standard  Monads. It has one dependency to some standard functionality in the [esoco-common project](https://esoco.github.io/esoco-common/). 
+This project contains a small library that defines generic Java interfaces for functors and monads as well as implementations of several standard  Monads. It has a single dependency to the [esoco-common project](https://esoco.github.io/esoco-common/), also a small library which provides some standard functionality. 
 
-For additional information please see the [Javadoc](http://esoco.github.io/esoco-monads/javadoc/).
+An introduction and further information can be found on the [project page](https://esoco.github.io/esoco-monads/).
 
 # License
 
 This project is licensed under the Apache 2.0 license (see the LICENSE file for details).  
+
