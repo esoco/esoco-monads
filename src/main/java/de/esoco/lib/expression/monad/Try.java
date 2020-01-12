@@ -383,6 +383,14 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
+		public T orGet(Supplier<T> fSupply) {
+			return fSupply.get();
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
 		public <E extends Exception> T orThrow(
 			Function<Exception, E> fMapException) throws E {
 			throw fMapException.apply(eError);
@@ -495,6 +503,14 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		@Override
 		public final T orFail() throws Exception {
 			return getResult().orFail();
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public T orGet(Supplier<T> fSupply) {
+			return getResult().orGet(fSupply);
 		}
 
 		/***************************************
@@ -632,6 +648,14 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 */
 		@Override
 		public final T orFail() {
+			return rValue;
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public T orGet(Supplier<T> fSupply) {
 			return rValue;
 		}
 

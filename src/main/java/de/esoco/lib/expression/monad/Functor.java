@@ -18,6 +18,7 @@ package de.esoco.lib.expression.monad;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 
 /********************************************************************
@@ -35,6 +36,15 @@ public interface Functor<T> {
 	//~ Methods ----------------------------------------------------------------
 
 	/***************************************
+	 * Maps the wrapped value into a new functor instance.
+	 *
+	 * @param  fMap The value mapping function
+	 *
+	 * @return A mapped functor
+	 */
+	public <R> Functor<R> map(Function<? super T, ? extends R> fMap);
+
+	/***************************************
 	 * A consuming operation that is performed if the functor doesn't contain a
 	 * valid value. This can be used to define the alternative of a call to a
 	 * monadic function like {@link #map(Function)} and especially {@link
@@ -42,7 +52,7 @@ public interface Functor<T> {
 	 *
 	 * @param fHandler The consumer of the the error that occurred
 	 */
-	public abstract void orElse(Consumer<Exception> fHandler);
+	public void orElse(Consumer<Exception> fHandler);
 
 	/***************************************
 	 * A consuming operation that either returns the functor's value or throws
@@ -58,7 +68,23 @@ public interface Functor<T> {
 	 * @throws Exception An exception signaling an invalid or indeterminable
 	 *                   value
 	 */
-	public abstract T orFail() throws Exception;
+	public T orFail() throws Exception;
+
+	/***************************************
+	 * A consuming operation that either returns the functor's value or returns
+	 * the result of invoking the given supplier if a valid value couldn't be
+	 * determined.
+	 *
+	 * <p>In general, calls to the monadic functions {@link #map(Function)} or
+	 * {@link #then(Consumer)} should be preferred to processing values with
+	 * consuming operations.</p>
+	 *
+	 * @param  fSupply The supplier to invoke if no regular value could be
+	 *                 determined
+	 *
+	 * @return The resulting value
+	 */
+	public T orGet(Supplier<T> fSupply);
 
 	/***************************************
 	 * A consuming operation that either returns the functor's value or throws a
@@ -74,12 +100,14 @@ public interface Functor<T> {
 	 *
 	 * @throws E The argument exception in the case of a failure
 	 */
-	public abstract <E extends Exception> T orThrow(
-		Function<Exception, E> fMapException) throws E;
+	public <E extends Exception> T orThrow(Function<Exception, E> fMapException)
+		throws E;
 
 	/***************************************
 	 * A consuming operation that either returns the functor's value or returns
-	 * the given default value if a valid value couldn't be determined.
+	 * the given default value if a valid value couldn't be determined. The
+	 * default implementation wraps the argument value into a {@link Supplier}
+	 * and invokes {@link #orGet(Supplier)}.
 	 *
 	 * <p>In general, calls to the monadic functions {@link #map(Function)} or
 	 * {@link #then(Consumer)} should be preferred to processing values with
@@ -90,16 +118,9 @@ public interface Functor<T> {
 	 *
 	 * @return The resulting value
 	 */
-	public abstract T orUse(T rDefaultValue);
-
-	/***************************************
-	 * Maps the wrapped value into a new functor instance.
-	 *
-	 * @param  fMap The value mapping function
-	 *
-	 * @return A mapped functor
-	 */
-	public <R> Functor<R> map(Function<? super T, ? extends R> fMap);
+	default T orUse(T rDefaultValue) {
+		return orGet(() -> rDefaultValue);
+	}
 
 	/***************************************
 	 * Consumes the value of this functor. This method is typically used at the

@@ -555,6 +555,18 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
+		public T orGet(Supplier<T> fSupply) {
+			try {
+				return getValue().orGet(fSupply);
+			} catch (Exception e) {
+				return fSupply.get();
+			}
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
 		public <E extends Exception> T orThrow(
 			Function<Exception, E> fMapException) throws E {
 			try {
@@ -698,6 +710,14 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		 */
 		@Override
 		public T orFail() {
+			return rValue;
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public T orGet(Supplier<T> fSupply) {
 			return rValue;
 		}
 

@@ -333,15 +333,11 @@ public class Option<T> implements Monad<T, Option<?>> {
 	}
 
 	/***************************************
-	 * Similar to the standard method {@link #orUse(Object)}, but with a
-	 * supplier argument that can execute arbitrary code.
-	 *
-	 * @param  fSupplyDefault The supplier of the default value
-	 *
-	 * @return Either the existing value or the default provided by the supplier
+	 * {@inheritDoc}
 	 */
-	public T orGet(Supplier<T> fSupplyDefault) {
-		return exists() ? rValue : fSupplyDefault.get();
+	@Override
+	public T orGet(Supplier<T> fSupply) {
+		return exists() ? rValue : fSupply.get();
 	}
 
 	/***************************************

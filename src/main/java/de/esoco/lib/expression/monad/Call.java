@@ -180,6 +180,14 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 * {@inheritDoc}
 	 */
 	@Override
+	public T orGet(Supplier<T> fSupply) {
+		return Try.now(fSupplier).orGet(fSupply);
+	}
+
+	/***************************************
+	 * {@inheritDoc}
+	 */
+	@Override
 	public <E extends Exception> T orThrow(Function<Exception, E> fMapException)
 		throws E {
 		return Try.now(fSupplier).orThrow(fMapException);
