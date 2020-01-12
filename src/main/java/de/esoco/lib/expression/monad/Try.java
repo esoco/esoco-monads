@@ -1,6 +1,6 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // This file is a part of the 'esoco-monads' project.
-// Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
+// Copyright 2020 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -367,7 +367,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
-		public void orElse(Consumer<Throwable> fHandler) {
+		public void orElse(Consumer<Exception> fHandler) {
 			fHandler.accept(eError);
 		}
 
@@ -485,7 +485,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
-		public void orElse(Consumer<Throwable> fHandler) {
+		public void orElse(Consumer<Exception> fHandler) {
 			getResult().orElse(fHandler);
 		}
 
@@ -623,7 +623,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
-		public void orElse(Consumer<Throwable> fHandler) {
+		public void orElse(Consumer<Exception> fHandler) {
 			// ignored on success
 		}
 

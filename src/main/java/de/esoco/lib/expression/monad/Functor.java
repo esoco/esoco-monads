@@ -1,6 +1,6 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // This file is a part of the 'esoco-monads' project.
-// Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
+// Copyright 2020 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ public interface Functor<T> {
 	 *
 	 * @param fHandler The consumer of the the error that occurred
 	 */
-	public abstract void orElse(Consumer<Throwable> fHandler);
+	public abstract void orElse(Consumer<Exception> fHandler);
 
 	/***************************************
 	 * A consuming operation that either returns the functor's value or throws

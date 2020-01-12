@@ -535,7 +535,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
-		public void orElse(Consumer<Throwable> fHandler) {
+		public void orElse(Consumer<Exception> fHandler) {
 			try {
 				getValue();
 			} catch (Exception e) {
@@ -689,7 +689,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
-		public void orElse(Consumer<Throwable> fHandler) {
+		public void orElse(Consumer<Exception> fHandler) {
 			// nothing to do here if resolved
 		}
 

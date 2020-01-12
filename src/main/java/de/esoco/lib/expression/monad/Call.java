@@ -1,6 +1,6 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // This file is a part of the 'esoco-monads' project.
-// Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
+// Copyright 2020 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -164,7 +164,7 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void orElse(Consumer<Throwable> fHandler) {
+	public void orElse(Consumer<Exception> fHandler) {
 		Try.now(fSupplier).orElse(fHandler);
 	}
 
