@@ -534,7 +534,17 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		 */
 		@Override
 		public T orFail() throws Exception {
-			return getValue().orFail();
+			try {
+				return getValue().orFail();
+			} catch (ExecutionException e) {
+				Throwable cause = e.getCause();
+
+				if (cause instanceof Exception) {
+					throw (Exception) cause;
+				} else {
+					throw (Error) e.getCause();
+				}
+			}
 		}
 
 		/***************************************
@@ -557,6 +567,14 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 			Function<Exception, E> fMapException) throws E {
 			try {
 				return getValue().orThrow(fMapException);
+			} catch (ExecutionException e) {
+				Throwable cause = e.getCause();
+
+				if (cause instanceof Exception) {
+					throw fMapException.apply((Exception) e.getCause());
+				} else {
+					throw (Error) e.getCause();
+				}
 			} catch (Exception e) {
 				throw fMapException.apply(e);
 			}

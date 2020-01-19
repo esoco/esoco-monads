@@ -219,7 +219,16 @@ public class PromiseTest extends MonadTest {
 	 */
 	@Test
 	public void testOrFail() {
-		Promise<String> p = Promise.failure(new Exception());
+		Promise<String> p = Promise.failure(new Exception("FAIL"));
+
+		try {
+			p.orFail();
+			fail();
+		} catch (Throwable e) {
+			// expected
+		}
+
+		p = Promise.of(() -> { throw new RuntimeException("FAIL"); });
 
 		try {
 			p.orFail();
@@ -235,7 +244,16 @@ public class PromiseTest extends MonadTest {
 	@Test
 	public void testOrThrow() {
 		Exception	    eError = new Exception();
-		Promise<String> p	   = Promise.failure(new Exception());
+		Promise<String> p	   = Promise.failure(eError);
+
+		try {
+			p.orThrow(e -> eError);
+			fail();
+		} catch (Throwable e) {
+			assertEquals(eError, e);
+		}
+
+		p = Promise.of(() -> { throw new RuntimeException("FAIL"); });
 
 		try {
 			p.orThrow(e -> eError);
