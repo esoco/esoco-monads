@@ -300,10 +300,12 @@ public class Option<T> implements Monad<T, Option<?>> {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void orElse(Consumer<Exception> fHandler) {
+	public Option<T> orElse(Consumer<Exception> fHandler) {
 		if (!exists()) {
 			fHandler.accept(new NullPointerException());
 		}
+
+		return this;
 	}
 
 	/***************************************

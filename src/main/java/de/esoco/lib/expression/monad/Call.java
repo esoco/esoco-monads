@@ -71,6 +71,18 @@ public class Call<T> implements Monad<T, Call<?>> {
 	//~ Static methods ---------------------------------------------------------
 
 	/***************************************
+	 * Alternative to {@link #of(ThrowingSupplier)} that can be used as a static
+	 * import.
+	 *
+	 * @param  fSupplier The value supplier
+	 *
+	 * @return The new instance
+	 */
+	public static <T> Call<T> call(ThrowingSupplier<T> fSupplier) {
+		return new Call<>(fSupplier);
+	}
+
+	/***************************************
 	 * Returns an always failing call.
 	 *
 	 * @param  eError The error exception
@@ -140,7 +152,7 @@ public class Call<T> implements Monad<T, Call<?>> {
 	@Override
 	public <R, N extends Monad<R, Call<?>>> Call<R> flatMap(
 		Function<? super T, N> fMap) {
-		return Call.of(() -> applyFlatMapping(fMap));
+		return call(() -> applyFlatMapping(fMap));
 	}
 
 	/***************************************
@@ -157,15 +169,15 @@ public class Call<T> implements Monad<T, Call<?>> {
 	@Override
 	@SuppressWarnings("unchecked")
 	public <R> Call<R> map(Function<? super T, ? extends R> fMap) {
-		return flatMap(t -> Call.of(() -> fMap.apply(t)));
+		return flatMap(t -> call(() -> fMap.apply(t)));
 	}
 
 	/***************************************
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void orElse(Consumer<Exception> fHandler) {
-		Try.now(fSupplier).orElse(fHandler);
+	public Call<T> orElse(Consumer<Exception> fHandler) {
+		return call(() -> Try.now(fSupplier).orElse(fHandler).orFail());
 	}
 
 	/***************************************
@@ -240,7 +252,7 @@ public class Call<T> implements Monad<T, Call<?>> {
 
 	/***************************************
 	 * Internal method to apply a {@link #flatMap(Function)} function to the
-	 * result.
+	 * result with the correct generic types.
 	 *
 	 * @param  fMap The mapping function
 	 *

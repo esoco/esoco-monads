@@ -22,13 +22,14 @@ import de.esoco.lib.expression.monad.Promise.State;
 import java.time.LocalDate;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import org.junit.Test;
+
+import static java.util.Arrays.asList;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -67,6 +68,29 @@ public class PromiseTest extends MonadTest {
 	   					LocalDate.of(ym.first(), ym.second(), d));
 
 		aLocalDatePromise.then(d -> assertEquals(today, d)).orFail();
+	}
+
+	/***************************************
+	 * Test of {@link Promise#orFail()}.
+	 *
+	 * @throws Exception
+	 */
+	@Test
+	public void testAwaitAndOrElse() throws Exception {
+		Promise<String> p	    = Promise.failure(new Exception());
+		Exception[]     aResult = new Exception[1];
+
+		p = p.then(s -> fail()).orElse(e -> aResult[0] = e);
+
+		try {
+			p.await();
+			fail();
+		} catch (Exception e) {
+			// expected
+		}
+
+		assertEquals("ERROR", p.orUse("ERROR"));
+		assertNotNull(aResult[0]);
 	}
 
 	/***************************************
@@ -136,67 +160,58 @@ public class PromiseTest extends MonadTest {
 	 */
 	@Test
 	public void testOfAll() throws Throwable {
-		List<Promise<Integer>> values =
+		List<Promise<String>> promises =
 			new ArrayList<>(
-				Arrays.asList(
-					Promise.of(() -> 1),
-					Promise.of(() -> 2),
-					Promise.of(() -> 3)));
+				asList(
+					Promise.resolved("1"),
+					Promise.resolved("2"),
+					Promise.resolved("3")));
 
-		Promise<Collection<Integer>> p = Promise.ofAll(values);
+		Promise<Collection<String>> p = Promise.ofAll(promises);
 
 		assertEquals(3, p.orFail().size());
 		assertTrue(p.isResolved());
 
-		Exception eError = new Exception(TEST_VALUE);
+		Exception err = new Exception(TEST_VALUE);
 
-		values.add(Promise.failure(eError));
-		Promise.ofAll(values)
-			   .then(s -> fail())
-			   .onError(e -> assertEquals(eError, e));
+		promises.add(Promise.failure(err));
+
+		Promise.ofAll(promises)
+			   .then(c -> fail())
+			   .orElse(e -> assertEquals(err, e));
 	}
 
 	/***************************************
 	 * Test of {@link Promise#ofAny(java.util.stream.Stream)}.
 	 *
-	 * @throws Throwable
+	 * @throws Exception
 	 */
 	@Test
-	public void testOfAny() throws Throwable {
-		List<Promise<String>> values =
-			Arrays.asList(
-				Promise.resolved("1"),
-				Promise.of(() -> "2"),
-				Promise.of(() -> "3"));
-
-		Promise<String> p = Promise.ofAny(values);
+	public void testOfAny() throws Exception {
+		Promise<String> p =
+			Promise.ofAny(
+	   				asList(
+	   					Promise.resolved("1"),
+	   					Promise.resolved("2"),
+	   					Promise.resolved("3"))).await();
 
 		assertTrue(p.isResolved());
 		assertEquals("1", p.orFail());
 
-		values =
-			Arrays.asList(
-				Promise.failure(new Exception(TEST_VALUE)),
-				Promise.of(() -> "2"),
-				Promise.of(() -> "3"));
+		p = Promise.ofAny(
+				asList(
+					Promise.failure(new Exception("1")),
+					Promise.failure(new Exception("2")),
+					Promise.failure(new Exception("3"))));
 
-		p = Promise.ofAny(values);
+		try {
+			p = p.await();
+			fail();
+		} catch (Exception e) {
+			// expected
+		}
 
 		assertEquals(State.FAILED, p.getState());
-	}
-
-	/***************************************
-	 * Test of {@link Promise#orFail()}.
-	 */
-	@Test
-	public void testOrElse() {
-		Promise<String> p	    = Promise.failure(new Exception());
-		Throwable[]     aResult = new Throwable[1];
-
-		p.then(s -> fail()).orElse(e -> aResult[0] = e);
-
-		assertEquals("ERROR", p.orUse("ERROR"));
-		assertNotNull(aResult[0]);
 	}
 
 	/***************************************

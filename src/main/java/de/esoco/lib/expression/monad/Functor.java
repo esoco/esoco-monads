@@ -45,14 +45,19 @@ public interface Functor<T> {
 	public <R> Functor<R> map(Function<? super T, ? extends R> fMap);
 
 	/***************************************
-	 * A consuming operation that is performed if the functor doesn't contain a
+	 * Sets an operation that is performed if the functor doesn't contain a
 	 * valid value. This can be used to define the alternative of a call to a
 	 * monadic function like {@link #map(Function)} and especially {@link
 	 * #then(Consumer)} to handle a failure case.
 	 *
-	 * @param fHandler The consumer of the the error that occurred
+	 * <p>Returns the resulting functor instance to allow chaining of further
+	 * calls or assigning to a variable.</p>
+	 *
+	 * @param  fHandler The consumer of the the error that occurred
+	 *
+	 * @return The resulting functor for chained invocations
 	 */
-	public void orElse(Consumer<Exception> fHandler);
+	public Functor<T> orElse(Consumer<Exception> fHandler);
 
 	/***************************************
 	 * A consuming operation that either returns the functor's value or throws

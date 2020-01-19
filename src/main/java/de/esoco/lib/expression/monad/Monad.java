@@ -1,6 +1,6 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // This file is a part of the 'esoco-monads' project.
-// Copyright 2019 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
+// Copyright 2020 Elmar Sonnenschein, esoco GmbH, Flensburg, Germany
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -88,9 +88,9 @@ public interface Monad<T, M extends Monad<?, M>> extends Functor<T> {
 	<R> Monad<R, M> map(Function<? super T, ? extends R> fMap);
 
 	/***************************************
-	 * Redefined here to change the return type to Monad. Subclasses can
-	 * typically just invoke super and declare their own type as the return
-	 * type.
+	 * Redefined here to provide a default implementation and to change the
+	 * return type to Monad. Subclasses can typically just invoke super and
+	 * declare their own type as the return type.
 	 *
 	 * @see Functor#then(Consumer)
 	 */

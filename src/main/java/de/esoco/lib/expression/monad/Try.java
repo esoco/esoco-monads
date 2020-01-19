@@ -228,6 +228,14 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	public abstract boolean isSuccess();
 
 	/***************************************
+	 * Redefined here to change the return type.
+	 *
+	 * @see Functor#orElse(Consumer)
+	 */
+	@Override
+	public abstract Try<T> orElse(Consumer<Exception> fHandler);
+
+	/***************************************
 	 * {@inheritDoc}
 	 */
 	@Override
@@ -367,8 +375,10 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
-		public void orElse(Consumer<Exception> fHandler) {
+		public Try<T> orElse(Consumer<Exception> fHandler) {
 			fHandler.accept(eError);
+
+			return this;
 		}
 
 		/***************************************
@@ -459,7 +469,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		@Override
 		public <R, N extends Monad<R, Try<?>>> Try<R> flatMap(
 			Function<? super T, N> fMap) {
-			return new Lazy<>(() -> applyFlatMapping(fMap));
+			return lazy(() -> applyFlatMapping(fMap));
 		}
 
 		/***************************************
@@ -486,15 +496,16 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 */
 		@Override
 		public <R> Try<R> map(Function<? super T, ? extends R> fMap) {
-			return new Lazy<>(() -> fMap.apply(getResult().orFail()));
+			return lazy(() -> fMap.apply(getResult().orFail()));
 		}
 
 		/***************************************
 		 * {@inheritDoc}
 		 */
 		@Override
-		public void orElse(Consumer<Exception> fHandler) {
-			getResult().orElse(fHandler);
+		public Try<T> orElse(Consumer<Exception> fHandler) {
+			// orElse() will always be invoked on Success or Failure
+			return flatMap(t -> getResult().orElse(fHandler));
 		}
 
 		/***************************************
@@ -639,8 +650,8 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
-		public void orElse(Consumer<Exception> fHandler) {
-			// ignored on success
+		public Try<T> orElse(Consumer<Exception> fHandler) {
+			return this;
 		}
 
 		/***************************************

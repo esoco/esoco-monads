@@ -55,14 +55,14 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 	/***************************************
 	 * Returns a promise that is completed in the FAILED state.
 	 *
-	 * @param  eError The error exception of the failure
+	 * @param  e The exception of the failure
 	 *
 	 * @return The failed promise
 	 */
-	public static <T> Promise<T> failure(Throwable eError) {
+	public static <T> Promise<T> failure(Exception e) {
 		CompletableFuture<T> aStage = new CompletableFuture<>();
 
-		aStage.completeExceptionally(eError);
+		aStage.completeExceptionally(e);
 
 		return Promise.of(aStage);
 	}
@@ -126,7 +126,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 								aStage.complete(aResult);
 							}
 						})
-					.onError(aStage::completeExceptionally));
+					.orElse(aStage::completeExceptionally));
 		}
 
 		return Promise.of(aStage);
@@ -154,7 +154,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		rPromises.forEach(
 			rPromise ->
 				rPromise.then(aStage::complete)
-				.onError(aStage::completeExceptionally));
+				.orElse(aStage::completeExceptionally));
 
 		return Promise.of(aStage);
 	}
@@ -174,11 +174,16 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 
 	/***************************************
 	 * Awaits the resolving of this promise and returns a resolved promise
-	 * instance that can be processed immediately.
+	 * instance that can be processed immediately. This method should only be
+	 * called on the end of a promise chain, i.e. after all calls to {@link
+	 * #map(Function)}, {@link #flatMap(Function)}, {@link #then(Consumer)}, and
+	 * {@link #orElse(Consumer)}. Otherwise the await will only apply to the
+	 * asynchronous processing to the step it has been invoked on and later
+	 * steps will still continue asynchronously.
 	 *
 	 * @return The resolved promise
 	 *
-	 * @throws Exception If the resolving fails
+	 * @throws Exception If resolving the promise fails
 	 */
 	public abstract Promise<T> await() throws Exception;
 
@@ -211,20 +216,12 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 	public abstract State getState();
 
 	/***************************************
-	 * Returns a new promise that consumes the error of a failed promise. This
-	 * method is non-blocking and will typically execute the given function
-	 * asynchronously when the promise terminates because of an exception.
+	 * Redefined here to change the return type.
 	 *
-	 * <p>In general, calls to the monadic functions {@link #map(Function)},
-	 * {@link #flatMap(Function)}, or {@link #then(Consumer)} should be
-	 * preferred to process values but a call to a consuming operation should
-	 * typically appear at the end of a chain.</p>
-	 *
-	 * @param  fHandler The consumer of the the error that occurred
-	 *
-	 * @return The resulting promise
+	 * @see Functor#orElse(Consumer)
 	 */
-	public abstract Promise<T> onError(Consumer<Throwable> fHandler);
+	@Override
+	public abstract Promise<T> orElse(Consumer<Exception> fHandler);
 
 	/***************************************
 	 * Defines the maximum time this promise may try to acquire the promised
@@ -376,13 +373,10 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		/***************************************
 		 * {@inheritDoc}
 		 */
-		private T getImpl(Promise<T> rPromise) throws ExecutionException,
-													  InterruptedException {
+		private T getImpl(Promise<T> rPromise) throws ExecutionException {
 			try {
 				return rPromise.orFail();
-			} catch (RuntimeException |
-					 ExecutionException |
-					 InterruptedException e) {
+			} catch (RuntimeException | ExecutionException e) {
 				throw e;
 			} catch (Exception e) {
 				throw new ExecutionException(e);
@@ -440,6 +434,8 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 
 		/***************************************
 		 * {@inheritDoc}
+		 *
+		 * @throws Exception
 		 */
 		@Override
 		public Promise<T> await() throws Exception {
@@ -521,26 +517,16 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
-		public Promise<T> onError(Consumer<Throwable> fHandler) {
+		public Promise<T> orElse(Consumer<Exception> fHandler) {
 			return new CompletionStagePromise<>(
-				rStage.whenComplete(
+				rStage.whenCompleteAsync(
 					(t, e) -> {
-						if (e != null) {
-							fHandler.accept(e);
+						if (e instanceof Error) {
+							throw (Error) e;
+						} else if (e != null) {
+							fHandler.accept((Exception) e);
 						}
 					}));
-		}
-
-		/***************************************
-		 * {@inheritDoc}
-		 */
-		@Override
-		public void orElse(Consumer<Exception> fHandler) {
-			try {
-				getValue();
-			} catch (Exception e) {
-				fHandler.accept(e);
-			}
 		}
 
 		/***************************************
@@ -693,16 +679,8 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		 * {@inheritDoc}
 		 */
 		@Override
-		public Promise<T> onError(Consumer<Throwable> fHandler) {
+		public Promise<T> orElse(Consumer<Exception> fHandler) {
 			return this;
-		}
-
-		/***************************************
-		 * {@inheritDoc}
-		 */
-		@Override
-		public void orElse(Consumer<Exception> fHandler) {
-			// nothing to do here if resolved
 		}
 
 		/***************************************
