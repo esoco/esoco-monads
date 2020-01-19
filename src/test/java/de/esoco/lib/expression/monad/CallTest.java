@@ -85,6 +85,38 @@ public class CallTest extends MonadTest {
 	}
 
 	/***************************************
+	 * Test of {@link Call#execute()}.
+	 *
+	 * @throws Throwable
+	 */
+	@Test
+	public void testExecute() throws Throwable {
+		Call.of(() -> "42")
+			.map(Integer::parseInt)
+			.then(i -> assertTrue(i == 42))
+			.execute();
+
+		try {
+			Call.<String>error(new Exception("ERROR"))
+				.then(s -> fail())
+				.execute();
+			fail();
+		} catch (RuntimeException e) {
+			assertEquals("ERROR", e.getCause().getMessage());
+		}
+
+		try {
+			Call.<String>error(new Exception("ERROR"))
+				.then(s -> fail())
+				.execute(e -> { throw new RuntimeException(e); });
+			fail();
+		} catch (RuntimeException e) {
+			System.out.printf("ERR%s\n", e);
+			assertEquals("ERROR", e.getCause().getMessage());
+		}
+	}
+
+	/***************************************
 	 * Test of {@link Call#flatMap(java.util.function.Function)}.
 	 *
 	 * @throws Throwable

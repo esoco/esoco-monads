@@ -147,6 +147,24 @@ public class Call<T> implements Monad<T, Call<?>> {
 	}
 
 	/***************************************
+	 * Executes this call and throws a {@link RuntimeException} on errors.
+	 */
+	public void execute() {
+		orThrow(RuntimeException::new);
+	}
+
+	/***************************************
+	 * Executes this call and forwards errors to the given error handler.
+	 *
+	 * @param fHandler The error handler
+	 */
+	public void execute(Consumer<Exception> fHandler) {
+		orElse(fHandler).orThrow(
+			e -> e instanceof RuntimeException ? (RuntimeException) e
+											   : new RuntimeException(e));
+	}
+
+	/***************************************
 	 * {@inheritDoc}
 	 */
 	@Override
@@ -177,7 +195,7 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 */
 	@Override
 	public Call<T> orElse(Consumer<Exception> fHandler) {
-		return call(() -> Try.now(fSupplier).orElse(fHandler).orFail());
+		return call(() -> test(fHandler));
 	}
 
 	/***************************************
@@ -264,5 +282,18 @@ public class Call<T> implements Monad<T, Call<?>> {
 	private <R, N extends Monad<R, Call<?>>> R applyFlatMapping(
 		Function<? super T, N> fMap) throws Exception {
 		return ((Call<R>) fMap.apply(fSupplier.tryGet())).orFail();
+	}
+
+	/***************************************
+	 * TODO: DOCUMENT ME!
+	 *
+	 * @param  fHandler TODO: DOCUMENT ME!
+	 *
+	 * @return TODO: DOCUMENT ME!
+	 *
+	 * @throws Exception TODO: DOCUMENT ME!
+	 */
+	private T test(Consumer<Exception> fHandler) throws Exception {
+		return Try.now(fSupplier).orElse(fHandler).orFail();
 	}
 }

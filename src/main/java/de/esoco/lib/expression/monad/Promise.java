@@ -231,7 +231,8 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 	 *
 	 * <p>Although it depends on the actual underlying implementation, the
 	 * timeout is typically only respected by blocking methods like {@link
-	 * #orUse(Object)}.</p>
+	 * #orUse(Object)} and defines the maximum wait time from the invocation of
+	 * the respective method.</p>
 	 *
 	 * @param  nTime The timeout value
 	 * @param  eUnit The time unit
