@@ -134,7 +134,7 @@ A lazy try will remain unresolved as long as only the mapping methods `map`, `fl
 
 ## [Call&lt;T&gt;](https://esoco.github.io/esoco-monads/javadoc/de/esoco/lib/expression/monad/Call.html)
 
-The `Call` monad is quite similar to `Try`. But instead of executing the wrapped code only once a call will execute it every time it is queried with the consuming methods. An invocation of `orUse`, `orGet`, `orFail`, and `orThrow` will cause a re-execution of the supplier, hence yielding a new result if the supplier is implemented accordingly. Calls can be arbitrarily mapped (including `then` and `orElse`) without being executed. Only consuming a call will invoke the wrapped code or perform error handling
+The `Call` monad is quite similar to `Try`. But instead of executing the wrapped code only once, a call will execute it every time it is queried with the consuming methods. An invocation of `orUse`, `orGet`, `orFail`, and `orThrow` will cause a re-execution of the supplier, hence yielding a new result if the supplier is implemented accordingly. Calls can be arbitrarily mapped (including `then` and `orElse`) without being executed. Only consuming a call will invoke the wrapped code or perform error handling.
 
 Because the main purpose of this monad is to provide repeatable function executions it also provides the method `execute()`, which executes the call once and triggers any mappings or throws a `RuntimeException` on errors. And `execute(Consumer<Exception>))` also executes the call, but forwards errors to the given error handler.
 
