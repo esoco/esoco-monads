@@ -40,14 +40,14 @@ import static java.util.stream.Collectors.toList;
  * will be created that is also only be evaluated when a consuming method is
  * invoked.
  *
- * <p>Like {@link Try#lazy(ThrowingSupplier) lazy tries} calls can may appear as
- * not complying with the monad laws although they effectively they are. That is
- * caused by the fact that call (flat) mappings are build by chaining anonymous
- * suppliers which cannot be detected as equal, even if they are. But when using
- * calls and mapped call chains they fully obey the monad laws because at the
- * end of the call chain theres's always a resolved value which is equal for
- * both sides of the monad law equations. Equality comparisons of unresolved
- * calls should be avoided as they will almost always yield FALSE.</p>
+ * <p>Like {@link Try#lazy(ThrowingSupplier) lazy tries} calls can appear as not
+ * complying with the monad laws. Mapping chains of calls are build by creating
+ * anonymous suppliers which cannot be detected as equal and therefore would
+ * cause equality comparisons of functional identical suppliers to fail. But
+ * comparing the resolved value of such calls would be true, so evaluated call
+ * chains are obeying the monad calls. Therefore equality comparisons of
+ * unresolved calls (and similar monads) should be avoided as they will almost
+ * always yield FALSE.</p>
  *
  * @author eso
  */
@@ -55,7 +55,7 @@ public class Call<T> implements Monad<T, Call<?>> {
 
 	//~ Instance fields --------------------------------------------------------
 
-	private ThrowingSupplier<T> fSupplier;
+	ThrowingSupplier<T> fSupplier;
 
 	//~ Constructors -----------------------------------------------------------
 
@@ -64,7 +64,7 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 *
 	 * @param fSupplier The value supplier
 	 */
-	private Call(ThrowingSupplier<T> fSupplier) {
+	Call(ThrowingSupplier<T> fSupplier) {
 		this.fSupplier = fSupplier;
 	}
 
@@ -90,7 +90,7 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 * @return the new instance
 	 */
 	public static <T> Call<T> error(Exception eError) {
-		return new Call<>(() -> { throw eError; });
+		return call(() -> { throw eError; });
 	}
 
 	/***************************************
@@ -101,7 +101,7 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 * @return The new instance
 	 */
 	public static <T> Call<T> of(ThrowingSupplier<T> fSupplier) {
-		return new Call<>(fSupplier);
+		return call(fSupplier);
 	}
 
 	/***************************************
@@ -119,7 +119,7 @@ public class Call<T> implements Monad<T, Call<?>> {
 		List<ThrowingSupplier<T>> aSuppliers =
 			rCalls.stream().map(c -> c.fSupplier).collect(toList());
 
-		return new Call<>(
+		return call(
 			() -> aSuppliers.stream().map(Supplier::get).collect(toList()));
 	}
 
@@ -147,7 +147,10 @@ public class Call<T> implements Monad<T, Call<?>> {
 	}
 
 	/***************************************
-	 * Executes this call and throws a {@link RuntimeException} on errors.
+	 * Executes this call and throws a {@link RuntimeException} on errors unless
+	 * an error handler has been set with {@link #orElse(Consumer)}. In that
+	 * case only the error handler will be executed on failures. An explicit
+	 * error handler can be provided with {@link #execute(Consumer)}.
 	 */
 	public void execute() {
 		orThrow(RuntimeException::new);
@@ -156,12 +159,10 @@ public class Call<T> implements Monad<T, Call<?>> {
 	/***************************************
 	 * Executes this call and forwards errors to the given error handler.
 	 *
-	 * @param fHandler The error handler
+	 * @param errorHandler The error handler
 	 */
-	public void execute(Consumer<Exception> fHandler) {
-		orElse(fHandler).orThrow(
-			e -> e instanceof RuntimeException ? (RuntimeException) e
-											   : new RuntimeException(e));
+	public void execute(Consumer<Exception> errorHandler) {
+		orElse(errorHandler).orUse(null);
 	}
 
 	/***************************************
@@ -195,7 +196,7 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 */
 	@Override
 	public Call<T> orElse(Consumer<Exception> fHandler) {
-		return call(() -> test(fHandler));
+		return new ErrorHandlingCall<>(fSupplier, fHandler);
 	}
 
 	/***************************************
@@ -279,21 +280,160 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 * @throws Exception If the
 	 */
 	@SuppressWarnings("unchecked")
-	private <R, N extends Monad<R, Call<?>>> R applyFlatMapping(
+	<R, N extends Monad<R, Call<?>>> R applyFlatMapping(
 		Function<? super T, N> fMap) throws Exception {
 		return ((Call<R>) fMap.apply(fSupplier.tryGet())).orFail();
 	}
 
-	/***************************************
-	 * TODO: DOCUMENT ME!
+	//~ Inner Classes ----------------------------------------------------------
+
+	/********************************************************************
+	 * Subclass that performs error handling
 	 *
-	 * @param  fHandler TODO: DOCUMENT ME!
-	 *
-	 * @return TODO: DOCUMENT ME!
-	 *
-	 * @throws Exception TODO: DOCUMENT ME!
+	 * @author eso
 	 */
-	private T test(Consumer<Exception> fHandler) throws Exception {
-		return Try.now(fSupplier).orElse(fHandler).orFail();
+
+	static class ErrorHandlingCall<T> extends Call<T> {
+
+		//~ Instance fields ----------------------------------------------------
+
+		private Consumer<Exception> fErrorHandler;
+
+		//~ Constructors -------------------------------------------------------
+
+		/***************************************
+		 * Creates a new instance.
+		 *
+		 * @param fSupplier     The value supplier
+		 * @param fErrorHandler The error handling function if it exists
+		 */
+		ErrorHandlingCall(
+			ThrowingSupplier<T> fSupplier,
+			Consumer<Exception> fErrorHandler) {
+			super(fSupplier);
+			this.fErrorHandler = fErrorHandler;
+		}
+
+		//~ Methods ------------------------------------------------------------
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public boolean equals(Object rObject) {
+			return this == rObject ||
+				   (rObject instanceof ErrorHandlingCall &&
+					super.equals(rObject) &&
+					Objects.equals(
+					fErrorHandler,
+					((ErrorHandlingCall<?>) rObject).fErrorHandler));
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public void execute() {
+			orUse(null);
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public <R, N extends Monad<R, Call<?>>> Call<R> flatMap(
+			Function<? super T, N> fMap) {
+			return new ErrorHandlingCall<>(
+				() -> applyFlatMapping(fMap),
+				fErrorHandler);
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public int hashCode() {
+			return super.hashCode() + 31 * Objects.hashCode(fErrorHandler);
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public Call<T> orElse(Consumer<Exception> fHandler) {
+			return new ErrorHandlingCall<>(
+				fSupplier,
+				fErrorHandler.andThen(fHandler));
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public T orFail() throws Exception {
+			return Try.now(fSupplier).orElse(fErrorHandler).orFail();
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public T orGet(Supplier<T> fSupply) {
+			return Try.now(fSupplier).orElse(fErrorHandler).orGet(fSupply);
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public <E extends Exception> T orThrow(
+			Function<Exception, E> fMapException) throws E {
+			return Try.now(fSupplier)
+					  .orElse(fErrorHandler)
+					  .orThrow(fMapException);
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public T orUse(T rDefault) {
+			return Try.now(fSupplier).orElse(fErrorHandler).orUse(rDefault);
+		}
+
+		/***************************************
+		 * Converts this call into a lazy {@link Try} (see {@link
+		 * Try#lazy(ThrowingSupplier)}.
+		 *
+		 * @return The resulting try
+		 */
+		@Override
+		public Try<T> toLazy() {
+			return Try.lazy(fSupplier).orElse(fErrorHandler);
+		}
+
+		/***************************************
+		 * {@inheritDoc}
+		 */
+		@Override
+		public String toString() {
+			return String.format(
+				"%s[%s/%s]",
+				getClass().getSimpleName(),
+				fSupplier,
+				fErrorHandler);
+		}
+
+		/***************************************
+		 * Converts this call into {@link Try} that contains either the result
+		 * of a successful execution or any occurring error (see {@link
+		 * Try#now(ThrowingSupplier)}.
+		 *
+		 * @return The resulting try
+		 */
+		@Override
+		public Try<T> toTry() {
+			return Try.now(fSupplier).orElse(fErrorHandler);
+		}
 	}
 }
