@@ -140,7 +140,8 @@
 </dd>
 <dt><span class="memberNameLink"><a href="de/esoco/lib/expression/monad/Call.html#execute--">execute()</a></span> - Method in class de.esoco.lib.expression.monad.<a href="de/esoco/lib/expression/monad/Call.html" title="class in de.esoco.lib.expression.monad">Call</a></dt>
 <dd>
-<div class="block">Executes this call and throws a <code>RuntimeException</code> on errors.</div>
+<div class="block">Executes this call and throws a <code>RuntimeException</code> on errors unless
+ an error handler has been set with <a href="de/esoco/lib/expression/monad/Call.html#orElse-java.util.function.Consumer-"><code>Call.orElse(Consumer)</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="de/esoco/lib/expression/monad/Call.html#execute-java.util.function.Consumer-">execute(Consumer&lt;Exception&gt;)</a></span> - Method in class de.esoco.lib.expression.monad.<a href="de/esoco/lib/expression/monad/Call.html" title="class in de.esoco.lib.expression.monad">Call</a></dt>
 <dd>

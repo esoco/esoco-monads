@@ -122,14 +122,14 @@ implements <a href="../../../../../de/esoco/lib/expression/monad/Monad.html" tit
  will be created that is also only be evaluated when a consuming method is
  invoked.
 
- <p>Like <a href="../../../../../de/esoco/lib/expression/monad/Try.html#lazy-de.esoco.lib.expression.ThrowingSupplier-"><code>lazy tries</code></a> calls can may appear as
- not complying with the monad laws although they effectively they are. That is
- caused by the fact that call (flat) mappings are build by chaining anonymous
- suppliers which cannot be detected as equal, even if they are. But when using
- calls and mapped call chains they fully obey the monad laws because at the
- end of the call chain theres's always a resolved value which is equal for
- both sides of the monad law equations. Equality comparisons of unresolved
- calls should be avoided as they will almost always yield FALSE.</p></div>
+ <p>Like <a href="../../../../../de/esoco/lib/expression/monad/Try.html#lazy-de.esoco.lib.expression.ThrowingSupplier-"><code>lazy tries</code></a> calls can appear as not
+ complying with the monad laws. Mapping chains of calls are build by creating
+ anonymous suppliers which cannot be detected as equal and therefore would
+ cause equality comparisons of functional identical suppliers to fail. But
+ comparing the resolved value of such calls would be true, so evaluated call
+ chains are obeying the monad calls. Therefore equality comparisons of
+ unresolved calls (and similar monads) should be avoided as they will almost
+ always yield FALSE.</p></div>
 </li>
 </ul>
 </div>
@@ -175,12 +175,13 @@ implements <a href="../../../../../de/esoco/lib/expression/monad/Monad.html" tit
 <tr id="i4" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../de/esoco/lib/expression/monad/Call.html#execute--">execute</a></span>()</code>
-<div class="block">Executes this call and throws a <code>RuntimeException</code> on errors.</div>
+<div class="block">Executes this call and throws a <code>RuntimeException</code> on errors unless
+ an error handler has been set with <a href="../../../../../de/esoco/lib/expression/monad/Call.html#orElse-java.util.function.Consumer-"><code>orElse(Consumer)</code></a>.</div>
 </td>
 </tr>
 <tr id="i5" class="rowColor">
 <td class="colFirst"><code>void</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../de/esoco/lib/expression/monad/Call.html#execute-java.util.function.Consumer-">execute</a></span>(java.util.function.Consumer&lt;java.lang.Exception&gt;&nbsp;fHandler)</code>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../de/esoco/lib/expression/monad/Call.html#execute-java.util.function.Consumer-">execute</a></span>(java.util.function.Consumer&lt;java.lang.Exception&gt;&nbsp;errorHandler)</code>
 <div class="block">Executes this call and forwards errors to the given error handler.</div>
 </td>
 </tr>
@@ -418,7 +419,10 @@ implements <a href="../../../../../de/esoco/lib/expression/monad/Monad.html" tit
 <li class="blockList">
 <h4>execute</h4>
 <pre>public&nbsp;void&nbsp;execute()</pre>
-<div class="block">Executes this call and throws a <code>RuntimeException</code> on errors.</div>
+<div class="block">Executes this call and throws a <code>RuntimeException</code> on errors unless
+ an error handler has been set with <a href="../../../../../de/esoco/lib/expression/monad/Call.html#orElse-java.util.function.Consumer-"><code>orElse(Consumer)</code></a>. In that
+ case only the error handler will be executed on failures. An explicit
+ error handler can be provided with <a href="../../../../../de/esoco/lib/expression/monad/Call.html#execute-java.util.function.Consumer-"><code>execute(Consumer)</code></a>.</div>
 </li>
 </ul>
 <a name="execute-java.util.function.Consumer-">
@@ -427,11 +431,11 @@ implements <a href="../../../../../de/esoco/lib/expression/monad/Monad.html" tit
 <ul class="blockList">
 <li class="blockList">
 <h4>execute</h4>
-<pre>public&nbsp;void&nbsp;execute(java.util.function.Consumer&lt;java.lang.Exception&gt;&nbsp;fHandler)</pre>
+<pre>public&nbsp;void&nbsp;execute(java.util.function.Consumer&lt;java.lang.Exception&gt;&nbsp;errorHandler)</pre>
 <div class="block">Executes this call and forwards errors to the given error handler.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
-<dd><code>fHandler</code> - The error handler</dd>
+<dd><code>errorHandler</code> - The error handler</dd>
 </dl>
 </li>
 </ul>
