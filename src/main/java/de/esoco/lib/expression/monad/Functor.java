@@ -42,7 +42,7 @@ public interface Functor<T> {
 	 *
 	 * @return A mapped functor
 	 */
-	public <R> Functor<R> map(Function<? super T, ? extends R> fMap);
+	<R> Functor<R> map(Function<? super T, ? extends R> fMap);
 
 	/***************************************
 	 * Sets an operation that is performed if the functor doesn't contain a
@@ -57,7 +57,7 @@ public interface Functor<T> {
 	 *
 	 * @return The resulting functor for chained invocations
 	 */
-	public Functor<T> orElse(Consumer<Exception> fHandler);
+	Functor<T> orElse(Consumer<Exception> fHandler);
 
 	/***************************************
 	 * A consuming operation that either returns the functor's value or throws
@@ -73,7 +73,7 @@ public interface Functor<T> {
 	 * @throws Exception An exception signaling an invalid or indeterminable
 	 *                   value
 	 */
-	public T orFail() throws Exception;
+	T orFail() throws Exception;
 
 	/***************************************
 	 * A consuming operation that either returns the functor's value or returns
@@ -89,7 +89,7 @@ public interface Functor<T> {
 	 *
 	 * @return The resulting value
 	 */
-	public T orGet(Supplier<T> fSupply);
+	T orGet(Supplier<T> fSupply);
 
 	/***************************************
 	 * A consuming operation that either returns the functor's value or throws a
@@ -105,7 +105,7 @@ public interface Functor<T> {
 	 *
 	 * @throws E The argument exception in the case of a failure
 	 */
-	public <E extends Exception> T orThrow(Function<Exception, E> fMapException)
+	<E extends Exception> T orThrow(Function<Exception, E> fMapException)
 		throws E;
 
 	/***************************************

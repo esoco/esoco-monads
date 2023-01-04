@@ -401,9 +401,9 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		//~ Instance fields ----------------------------------------------------
 
 		// wraps another promise to simplify the implementation of flatMap
-		private CompletionStage<Promise<T>> rStage;
-		private long					    nTimeout;
-		private TimeUnit				    eTimeUnit;
+		private final CompletionStage<Promise<T>> rStage;
+		private final long					    nTimeout;
+		private final TimeUnit				    eTimeUnit;
 
 		//~ Constructors -------------------------------------------------------
 
@@ -625,7 +625,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 
 		//~ Instance fields ----------------------------------------------------
 
-		private T rValue;
+		private final T rValue;
 
 		//~ Constructors -------------------------------------------------------
 

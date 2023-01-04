@@ -282,7 +282,7 @@ public class Call<T> implements Monad<T, Call<?>> {
 	@SuppressWarnings("unchecked")
 	<R, N extends Monad<R, Call<?>>> R applyFlatMapping(
 		Function<? super T, N> fMap) throws Exception {
-		return ((Call<R>) fMap.apply(fSupplier.tryGet())).orFail();
+		return fMap.apply(fSupplier.tryGet()).orFail();
 	}
 
 	//~ Inner Classes ----------------------------------------------------------
@@ -297,7 +297,7 @@ public class Call<T> implements Monad<T, Call<?>> {
 
 		//~ Instance fields ----------------------------------------------------
 
-		private Consumer<Exception> fErrorHandler;
+		private final Consumer<Exception> fErrorHandler;
 
 		//~ Constructors -------------------------------------------------------
 

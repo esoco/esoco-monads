@@ -42,7 +42,7 @@ public class Option<T> implements Monad<T, Option<?>> {
 
 	//~ Instance fields --------------------------------------------------------
 
-	private T rValue;
+	private final T rValue;
 
 	//~ Constructors -----------------------------------------------------------
 

@@ -432,7 +432,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 
 		//~ Instance fields ----------------------------------------------------
 
-		private ThrowingSupplier<T> fValueSupplier;
+		private final ThrowingSupplier<T> fValueSupplier;
 
 		private Option<Try<T>> aResult = Option.none();
 
@@ -554,7 +554,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		@SuppressWarnings("unchecked")
 		<R, N extends Monad<R, Try<?>>> R applyFlatMapping(
 			Function<? super T, N> fMap) throws Exception {
-			return ((Try<R>) fMap.apply(getResult().orFail())).orFail();
+			return fMap.apply(getResult().orFail()).orFail();
 		}
 
 		/***************************************

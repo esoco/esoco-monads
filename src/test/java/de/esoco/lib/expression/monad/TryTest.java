@@ -265,7 +265,7 @@ public class TryTest extends MonadTest {
                 Try.now(() -> 1),
                 Try.now(() -> 2),
                 Try.now(() -> 3),
-                Try.<Integer>failure(new Exception("EXPECTED"))))
+                Try.failure(new Exception("EXPECTED"))))
         .then(c -> fail())
         .orElse(e -> assertEquals("EXPECTED", e.getMessage()));
     }

@@ -49,7 +49,7 @@ public interface Monad<T, M extends Monad<?, M>> extends Functor<T> {
 	 *
 	 * @return The mapped and flattened monad
 	 */
-	public <R, N extends Monad<R, M>> Monad<R, M> flatMap(
+	<R, N extends Monad<R, M>> Monad<R, M> flatMap(
 		Function<? super T, N> fMap);
 
 	/***************************************
