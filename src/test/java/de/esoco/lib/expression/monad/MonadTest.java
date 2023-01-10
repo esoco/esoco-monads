@@ -21,7 +21,7 @@ import java.util.function.Function;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
-/********************************************************************
+/**
  * A base class for monad implementations that contains generic tests for the 3
  * fundamental monad laws. Subclasses need to implement {@link #testMonadLaws()}
  * and annotate it as a test method. There they should invoke {@link
@@ -38,14 +38,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 public abstract class MonadTest<M extends Monad<String, M>> {
 
-	//~ Static fields/initializers ---------------------------------------------
-
 	/** A string value for testing monad laws. */
 	protected static final String TEST_VALUE = "TEST";
 
-	//~ Methods ----------------------------------------------------------------
-
-	/***************************************
+	/**
 	 * Must be implemented to invoke the monad law tests on the monad subtype
 	 * under test. Implementations that extend this class as a raw type as
 	 * recommended (see class description) also need to suppress unchecked
@@ -56,7 +52,7 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 	 */
 	public abstract void testMonadLaws() throws Exception;
 
-	/***************************************
+	/**
 	 * Helper method that returns a function which maps a string into another by
 	 * appending a suffix.
 	 *
@@ -68,7 +64,7 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 		return s -> s + "-MAPPED-" + suffix;
 	}
 
-	/***************************************
+	/**
 	 * Tests all monad laws with default input value and mapping functions.
 	 *
 	 * @param fUnit The unit function to create a new monad
@@ -77,7 +73,7 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 		testAllMonadLaws(TEST_VALUE, fUnit, mapString("1"), mapString("2"));
 	}
 
-	/***************************************
+	/**
 	 * Tests all monad laws for the given input value.
 	 *
 	 * @param testValue The test input value
@@ -94,7 +90,7 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 		testLaw3Associativity(testValue, fUnit, f1, f2);
 	}
 
-	/***************************************
+	/**
 	 * Test of monad law 1, left identity:
 	 *
 	 * <pre>M(V).flatMap(F(V)) == F(V)</pre>
@@ -112,7 +108,7 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 			fMap.andThen(fUnit).apply(testValue));
 	}
 
-	/***************************************
+	/**
 	 * Test of monad law 2, right identity:
 	 *
 	 * <pre>M(V).flatMap(M(V)) == M(V)</pre>
@@ -128,7 +124,7 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 		assertEquals(monad.flatMap(fUnit::apply), monad);
 	}
 
-	/***************************************
+	/**
 	 * Test of monad law 3, associativity:
 	 *
 	 * <pre>M(V).flatMap(F1(V)).flatMap(F2(V')) == M(V).flatMap(F2(F1(V)))</pre>
