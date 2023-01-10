@@ -1,3 +1,5 @@
 rootProject.name = 'esoco-monads'
 
-includeBuild '../esoco-common'
+['esoco-common'].each { 
+	project -> if (new File("$rootDir/../$project").exists()) includeBuild "../$project"
+}
