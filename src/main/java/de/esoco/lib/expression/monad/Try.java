@@ -31,13 +31,13 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
-
 /********************************************************************
  * A {@link Monad} implementation for the attempted execution of value-supplying
  * operations that may fail with an exception. Whether the execution was
  * successful can be tested with {@link #isSuccess()}.
  *
- * <p>Executions can be performed in two different ways: either immediately by
+ * <p>
+ * Executions can be performed in two different ways: either immediately by
  * creating an instance with {@link #now(ThrowingSupplier)} or lazily with
  * {@link #lazy(ThrowingSupplier)}. In the first case the provided supplier will
  * be evaluated upon creation of the try instance. In the case of lazy
@@ -46,17 +46,20 @@ import static java.util.stream.Collectors.toList;
  * #orFail()}. This will also be the case for mapped lazy tries. A side effect
  * of this is that lazy tries may appear as not complying with the monad laws,
  * although effectively they are (see method comment of {@link
- * #lazy(ThrowingSupplier)} for details).</p>
+ * #lazy(ThrowingSupplier)} for details).
+ * </p>
  *
- * <p>The supplier of a try, even of a lazy one, is always only evaluated once.
+ * <p>
+ * The supplier of a try, even of a lazy one, is always only evaluated once.
  * Each subsequent consumption will yield the same result. If a supplier should
- * be re-evaluated on each call the {@link Call} monad can be used instead.</p>
+ * be re-evaluated on each call the {@link Call} monad can be used instead.
+ * </p>
  *
  * @author eso
  */
 public abstract class Try<T> implements Monad<T, Try<?>> {
 
-	//~ Constructors -----------------------------------------------------------
+	// ~ Constructors -----------------------------------------------------------
 
 	/***************************************
 	 * Creates a new instance.
@@ -64,12 +67,12 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	Try() {
 	}
 
-	//~ Static methods ---------------------------------------------------------
+	// ~ Static methods ---------------------------------------------------------
 
 	/***************************************
 	 * Returns an instance that represents a failed execution.
 	 *
-	 * @param  e The error exception
+	 * @param e The error exception
 	 *
 	 * @return The failure instance
 	 */
@@ -85,7 +88,8 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	 * result. {@link #map(Function) Mapping} or {@link #flatMap(Function) flat
 	 * mapping} a lazy try will create another unresolved, lazy instance.
 	 *
-	 * <p>A side effect of lazy tries not evaluating the argument supplier
+	 * <p>
+	 * A side effect of lazy tries not evaluating the argument supplier
 	 * immediately is that an unresolved lazy try does not directly comply with
 	 * the monad laws. This is because when (flat) mapped additional wrapping
 	 * suppliers will be created that will also be evaluated lazily. Until
@@ -93,12 +97,15 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	 * the created supplier cannot not be recognized as equal. Resolved lazy
 	 * tries obey the monad laws, so lazy tries are effectively compliant with
 	 * the laws. Equality tests should therefore only be used with caution on
-	 * lazy tries (or better, not at all).</p>
+	 * lazy tries (or better, not at all).
+	 * </p>
 	 *
-	 * <p>An instance that evaluates the supplier immediately and directly obeys
-	 * the monad laws can be created with {@link #now(ThrowingSupplier)}.</p>
+	 * <p>
+	 * An instance that evaluates the supplier immediately and directly obeys
+	 * the monad laws can be created with {@link #now(ThrowingSupplier)}.
+	 * </p>
 	 *
-	 * @param  fSupplier The throwing supplier to evaluate lazily
+	 * @param fSupplier The throwing supplier to evaluate lazily
 	 *
 	 * @return The new instance
 	 */
@@ -111,10 +118,12 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	 * given {@link Supplier}. The returned instance either represents a
 	 * successful execution or a failure if the execution failed.
 	 *
-	 * <p>An instance that evaluates the supplier lazily on the first access can
-	 * be created with {@link #lazy(ThrowingSupplier)}.</p>
+	 * <p>
+	 * An instance that evaluates the supplier lazily on the first access can
+	 * be created with {@link #lazy(ThrowingSupplier)}.
+	 * </p>
 	 *
-	 * @param  fSupplier The supplier to execute
+	 * @param fSupplier The supplier to execute
 	 *
 	 * @return The new instance
 	 */
@@ -133,42 +142,42 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	 * have failed. The error of the failure will be that of the first failed
 	 * try.
 	 *
-	 * <p>Other than {@link #ofSuccessful(Stream)} this transformation cannot be
+	 * <p>
+	 * Other than {@link #ofSuccessful(Stream)} this transformation cannot be
 	 * performed on a stream (of possibly indefinite size) because success or
-	 * failure needs to be determined upon invocation.</p>
+	 * failure needs to be determined upon invocation.
+	 * </p>
 	 *
-	 * @param  rTries The collection of tries to convert
+	 * @param rTries The collection of tries to convert
 	 *
 	 * @return A new successful try of a collection of the values of all tries
 	 *         or a failure if one or more tries failed
 	 */
 	public static <T> Try<Collection<T>> ofAll(Collection<Try<T>> rTries) {
-		Optional<Try<T>> aFailure =
-			rTries.stream().filter(t -> !t.isSuccess()).findFirst();
+		Optional<Try<T>> aFailure = rTries.stream().filter(t -> !t.isSuccess()).findFirst();
 
 		// map to RuntimeException is only an assertion, can never happen
 		return aFailure.isPresent()
-			   ? failure(((Failure<?>) aFailure.get()).eError)
-			   : success(
-			rTries.stream()
-			.map(t -> t.orThrow(RuntimeException::new))
-			.collect(toList()));
+				? failure(((Failure<?>) aFailure.get()).eError)
+				: success(
+						rTries.stream()
+								.map(t -> t.orThrow(RuntimeException::new))
+								.collect(toList()));
 	}
 
 	/***************************************
 	 * Converts a stream of attempted executions into a try of a stream of
 	 * successful values.
 	 *
-	 * @param  rTries The stream of tries to convert
+	 * @param rTries The stream of tries to convert
 	 *
 	 * @return A new try that contains a stream of successful values
 	 */
 	public static <T> Try<Stream<T>> ofSuccessful(Stream<Try<T>> rTries) {
 		// map to RuntimeException is only an assertion, can never happen
 		return Try.now(
-			() ->
-				rTries.filter(Try::isSuccess)
-				.map(t -> t.orThrow(RuntimeException::new)));
+				() -> rTries.filter(Try::isSuccess)
+						.map(t -> t.orThrow(RuntimeException::new)));
 	}
 
 	/***************************************
@@ -176,15 +185,19 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	 * given {@link Runnable}. The returned instance either represents a
 	 * successful execution or a failure if the execution failed.
 	 *
-	 * <p>Because a runnable doesn't return a value the generic type of the
+	 * <p>
+	 * Because a runnable doesn't return a value the generic type of the
 	 * result is VOID and consequently the wrapped value is NULL. Therefore
 	 * mapping or consuming the returned instance doesn't make sense. The main
 	 * purpose of this method is to serve as a compact alternative to try/catch
-	 * blocks, like in this example:</p>
+	 * blocks, like in this example:
+	 * </p>
 	 *
-	 * <pre>Try.run(() -> invokeWithPossibleFailure()).orElse(e -> handleError(e));</pre>
+	 * <pre>
+	 * Try.run(() -&gt; invokeWithPossibleFailure()).orElse(e -&gt; handleError(e));
+	 * </pre>
 	 *
-	 * @param  fCode The code to execute
+	 * @param fCode The code to execute
 	 *
 	 * @return The new instance
 	 */
@@ -201,7 +214,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	/***************************************
 	 * Returns an instance that represents a failed execution.
 	 *
-	 * @param  rValue eError The error exception
+	 * @param rValue eError The error exception
 	 *
 	 * @return The failure instance
 	 */
@@ -210,14 +223,14 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		return new Success<>(rValue);
 	}
 
-	//~ Methods ----------------------------------------------------------------
+	// ~ Methods ----------------------------------------------------------------
 
 	/***************************************
 	 * {@inheritDoc}
 	 */
 	@Override
 	public abstract <R, N extends Monad<R, Try<?>>> Try<R> flatMap(
-		Function<? super T, N> fMap);
+			Function<? super T, N> fMap);
 
 	/***************************************
 	 * Checks whether the execution was successful.
@@ -241,8 +254,8 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	@Override
 	@SuppressWarnings("unchecked")
 	public <V, R, N extends Monad<V, Try<?>>> Try<R> and(
-		N											  rOther,
-		BiFunction<? super T, ? super V, ? extends R> fJoin) {
+			N rOther,
+			BiFunction<? super T, ? super V, ? extends R> fJoin) {
 		return (Try<R>) Monad.super.and(rOther, fJoin);
 	}
 
@@ -251,22 +264,22 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	 * is successful if this try is successful and the wrapped value fulfills
 	 * the criteria, or a failure otherwise.
 	 *
-	 * @param  pCriteria A predicate defining the filter criteria
+	 * @param pCriteria A predicate defining the filter criteria
 	 *
 	 * @return The resulting try
 	 */
 	@SuppressWarnings("unchecked")
 	public Try<T> filter(Predicate<T> pCriteria) {
 		return flatMap(
-			v -> pCriteria.test(v)
-				? success(v)
-				: failure(new Exception("Criteria not met by " + v)));
+				v -> pCriteria.test(v)
+						? success(v)
+						: failure(new Exception("Criteria not met by " + v)));
 	}
 
 	/***************************************
 	 * A semantic alternative to {@link #then(Consumer)}.
 	 *
-	 * @param  fConsumer The consumer to invoke
+	 * @param fConsumer The consumer to invoke
 	 *
 	 * @return The resulting try for chained invocations
 	 */
@@ -297,9 +310,9 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	@Override
 	public String toString() {
 		return String.format(
-			"%s[%s]",
-			getClass().getSimpleName(),
-			getDescribingValue());
+				"%s[%s]",
+				getClass().getSimpleName(),
+				getDescribingValue());
 	}
 
 	/***************************************
@@ -309,7 +322,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	 */
 	abstract Object getDescribingValue();
 
-	//~ Inner Classes ----------------------------------------------------------
+	// ~ Inner Classes ----------------------------------------------------------
 
 	/********************************************************************
 	 * The implementation of successful tries.
@@ -318,11 +331,11 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	 */
 	static class Failure<T> extends Try<T> {
 
-		//~ Instance fields ----------------------------------------------------
+		// ~ Instance fields ----------------------------------------------------
 
 		private final Exception eError;
 
-		//~ Constructors -------------------------------------------------------
+		// ~ Constructors -------------------------------------------------------
 
 		/***************************************
 		 * Creates a new instance.
@@ -333,7 +346,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 			this.eError = eError;
 		}
 
-		//~ Methods ------------------------------------------------------------
+		// ~ Methods ------------------------------------------------------------
 
 		/***************************************
 		 * {@inheritDoc}
@@ -341,8 +354,8 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		@Override
 		public boolean equals(Object rObject) {
 			return this == rObject ||
-				   (rObject instanceof Failure &&
-					Objects.equals(eError, ((Failure<?>) rObject).eError));
+					(rObject instanceof Failure &&
+							Objects.equals(eError, ((Failure<?>) rObject).eError));
 		}
 
 		/***************************************
@@ -351,7 +364,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		@Override
 		@SuppressWarnings("unchecked")
 		public <R, N extends Monad<R, Try<?>>> Try<R> flatMap(
-			Function<? super T, N> fMap) {
+				Function<? super T, N> fMap) {
 			return (Try<R>) this;
 		}
 
@@ -402,7 +415,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 */
 		@Override
 		public <E extends Exception> T orThrow(
-			Function<Exception, E> fMapException) throws E {
+				Function<Exception, E> fMapException) throws E {
 			throw fMapException.apply(eError);
 		}
 
@@ -430,13 +443,13 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	 */
 	static class Lazy<T> extends Try<T> {
 
-		//~ Instance fields ----------------------------------------------------
+		// ~ Instance fields ----------------------------------------------------
 
 		private final ThrowingSupplier<T> fValueSupplier;
 
 		private Option<Try<T>> aResult = Option.none();
 
-		//~ Constructors -------------------------------------------------------
+		// ~ Constructors -------------------------------------------------------
 
 		/***************************************
 		 * Creates a new instance.
@@ -447,7 +460,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 			this.fValueSupplier = fValueSupplier;
 		}
 
-		//~ Methods ------------------------------------------------------------
+		// ~ Methods ------------------------------------------------------------
 
 		/***************************************
 		 * {@inheritDoc}
@@ -455,12 +468,12 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		@Override
 		public boolean equals(Object rObject) {
 			return this == rObject ||
-				   (rObject instanceof Lazy &&
-					(aResult.exists()
-					 ? Objects.equals(aResult, ((Lazy<?>) rObject).aResult)
-					 : Objects.equals(
-						fValueSupplier,
-						((Lazy<?>) rObject).fValueSupplier)));
+					(rObject instanceof Lazy &&
+							(aResult.exists()
+									? Objects.equals(aResult, ((Lazy<?>) rObject).aResult)
+									: Objects.equals(
+											fValueSupplier,
+											((Lazy<?>) rObject).fValueSupplier)));
 		}
 
 		/***************************************
@@ -468,7 +481,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 */
 		@Override
 		public <R, N extends Monad<R, Try<?>>> Try<R> flatMap(
-			Function<? super T, N> fMap) {
+				Function<? super T, N> fMap) {
 			return lazy(() -> applyFlatMapping(fMap));
 		}
 
@@ -478,7 +491,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		@Override
 		public int hashCode() {
 			return Objects.hashCode(
-				aResult.exists() ? aResult : fValueSupplier);
+					aResult.exists() ? aResult : fValueSupplier);
 		}
 
 		/***************************************
@@ -529,7 +542,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 */
 		@Override
 		public <E extends Exception> T orThrow(
-			Function<Exception, E> fMapException) throws E {
+				Function<Exception, E> fMapException) throws E {
 			return getResult().orThrow(fMapException);
 		}
 
@@ -545,7 +558,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 * Internal method to apply a {@link #flatMap(Function)} function to the
 		 * result of this instance.
 		 *
-		 * @param  fMap The mapping function
+		 * @param fMap The mapping function
 		 *
 		 * @return The mapped Try instance
 		 *
@@ -553,7 +566,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 */
 		@SuppressWarnings("unchecked")
 		<R, N extends Monad<R, Try<?>>> R applyFlatMapping(
-			Function<? super T, N> fMap) throws Exception {
+				Function<? super T, N> fMap) throws Exception {
 			return fMap.apply(getResult().orFail()).orFail();
 		}
 
@@ -593,11 +606,11 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	 */
 	static class Success<T> extends Try<T> {
 
-		//~ Instance fields ----------------------------------------------------
+		// ~ Instance fields ----------------------------------------------------
 
 		private final T rValue;
 
-		//~ Constructors -------------------------------------------------------
+		// ~ Constructors -------------------------------------------------------
 
 		/***************************************
 		 * Creates a new instance.
@@ -608,7 +621,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 			this.rValue = rValue;
 		}
 
-		//~ Methods ------------------------------------------------------------
+		// ~ Methods ------------------------------------------------------------
 
 		/***************************************
 		 * {@inheritDoc}
@@ -616,8 +629,8 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		@Override
 		public boolean equals(Object rObject) {
 			return this == rObject ||
-				   (rObject instanceof Success &&
-					Objects.equals(rValue, ((Success<?>) rObject).rValue));
+					(rObject instanceof Success &&
+							Objects.equals(rValue, ((Success<?>) rObject).rValue));
 		}
 
 		/***************************************
@@ -626,7 +639,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		@Override
 		@SuppressWarnings("unchecked")
 		public <R, N extends Monad<R, Try<?>>> Try<R> flatMap(
-			Function<? super T, N> fMap) {
+				Function<? super T, N> fMap) {
 			return (Try<R>) fMap.apply(rValue);
 		}
 
@@ -675,7 +688,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		 */
 		@Override
 		public <E extends Exception> T orThrow(
-			Function<Exception, E> fMapException) throws E {
+				Function<Exception, E> fMapException) throws E {
 			return rValue;
 		}
 

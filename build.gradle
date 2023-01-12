@@ -18,7 +18,7 @@ project.description = 'Functor and monad implementations'
 sourceCompatibility = 1.8
 
 dependencies {
-	api 'de.esoco:esoco-common:1.5.+'
+	api 'de.esoco:esoco-common:1.5.1'
 	
 	testImplementation platform("org.junit:junit-bom:$junitVersion")
 	testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -41,15 +41,6 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 artifacts {
 	archives sourcesJar
 	archives javadocJar
-}
-
-tasks.withType(Javadoc) {
-	failOnError = false
-	options.addBooleanOption('quiet', true)
-	
-	if (JavaVersion.current().isJava8Compatible()) {
-		options.addBooleanOption('Xdoclint:none', true)
-	}
 }
 
 mavenPublishing {
