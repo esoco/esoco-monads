@@ -21,7 +21,6 @@ import de.esoco.lib.expression.ThrowingSupplier;
 
 import java.util.Collection;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -31,7 +30,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
-/********************************************************************
+/**
  * A {@link Monad} implementation for the attempted execution of value-supplying
  * operations that may fail with an exception. Whether the execution was
  * successful can be tested with {@link #isSuccess()}.
@@ -42,11 +41,11 @@ import static java.util.stream.Collectors.toList;
  * {@link #lazy(ThrowingSupplier)}. In the first case the provided supplier will
  * be evaluated upon creation of the try instance. In the case of lazy
  * executions the supplier will only be evaluated when the Try is consumed by
- * invoking one of the terminating methods like {@link #orUse(Object)} or {@link
- * #orFail()}. This will also be the case for mapped lazy tries. A side effect
- * of this is that lazy tries may appear as not complying with the monad laws,
- * although effectively they are (see method comment of {@link
- * #lazy(ThrowingSupplier)} for details).
+ * invoking one of the terminating methods like {@link #orUse(Object)} or
+ * {@link #orFail()}. This will also be the case for mapped lazy tries. A side
+ * effect of this is that lazy tries may appear as not complying with the monad
+ * laws, although effectively they are (see method comment of
+ * {@link #lazy(ThrowingSupplier)} for details).
  * </p>
  *
  * <p>
@@ -59,34 +58,29 @@ import static java.util.stream.Collectors.toList;
  */
 public abstract class Try<T> implements Monad<T, Try<?>> {
 
-	// ~ Constructors -----------------------------------------------------------
-
-	/***************************************
+	/**
 	 * Creates a new instance.
 	 */
 	Try() {
 	}
 
-	// ~ Static methods ---------------------------------------------------------
-
-	/***************************************
+	/**
 	 * Returns an instance that represents a failed execution.
 	 *
 	 * @param e The error exception
-	 *
 	 * @return The failure instance
 	 */
-	@SuppressWarnings("unchecked")
-	public static <T> Try<T> failure(Exception e) {
+	public static <T> Try<T> failure(Throwable e) {
 		return new Failure<>(e);
 	}
 
-	/***************************************
+	/**
 	 * Returns a new instance that will perform a lazy evaluation of the given
 	 * supplier. That means the supplier will only be queried if one of the
 	 * consuming methods like {@link #orUse(Object)} is invoked to access the
-	 * result. {@link #map(Function) Mapping} or {@link #flatMap(Function) flat
-	 * mapping} a lazy try will create another unresolved, lazy instance.
+	 * result. {@link #map(Function) Mapping} or
+	 * {@link #flatMap(Function) flat mapping} a lazy try will create another
+	 * unresolved, lazy instance.
 	 *
 	 * <p>
 	 * A side effect of lazy tries not evaluating the argument supplier
@@ -105,37 +99,36 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	 * the monad laws can be created with {@link #now(ThrowingSupplier)}.
 	 * </p>
 	 *
-	 * @param fSupplier The throwing supplier to evaluate lazily
-	 *
+	 * @param supplier The throwing supplier to evaluate lazily
 	 * @return The new instance
 	 */
-	public static <T> Try<T> lazy(ThrowingSupplier<T> fSupplier) {
-		return new Lazy<>(fSupplier);
+	public static <T> Try<T> lazy(ThrowingSupplier<T> supplier) {
+		return new Lazy<>(supplier);
 	}
 
-	/***************************************
+	/**
 	 * Returns a new instance that represents the immediate execution of the
 	 * given {@link Supplier}. The returned instance either represents a
 	 * successful execution or a failure if the execution failed.
 	 *
 	 * <p>
-	 * An instance that evaluates the supplier lazily on the first access can
-	 * be created with {@link #lazy(ThrowingSupplier)}.
+	 * An instance that evaluates the supplier lazily on the first access
+	 * can be
+	 * created with {@link #lazy(ThrowingSupplier)}.
 	 * </p>
 	 *
-	 * @param fSupplier The supplier to execute
-	 *
+	 * @param supplier The supplier to execute
 	 * @return The new instance
 	 */
-	public static <T> Try<T> now(ThrowingSupplier<T> fSupplier) {
+	public static <T> Try<T> now(ThrowingSupplier<T> supplier) {
 		try {
-			return new Success<>(fSupplier.tryGet());
+			return new Success<>(supplier.tryGet());
 		} catch (Exception e) {
 			return new Failure<>(e);
 		}
 	}
 
-	/***************************************
+	/**
 	 * Converts a collection of attempted executions into either a successful
 	 * try of a collection of values if all tries in the collection were
 	 * successful or into a failed try if one or more tries in the collection
@@ -148,62 +141,60 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 	 * failure needs to be determined upon invocation.
 	 * </p>
 	 *
-	 * @param rTries The collection of tries to convert
-	 *
+	 * @param tries The collection of tries to convert
 	 * @return A new successful try of a collection of the values of all tries
-	 *         or a failure if one or more tries failed
+	 * or a failure if one or more tries failed
 	 */
-	public static <T> Try<Collection<T>> ofAll(Collection<Try<T>> rTries) {
-		Optional<Try<T>> aFailure = rTries.stream().filter(t -> !t.isSuccess()).findFirst();
-
+	public static <T> Try<Collection<T>> ofAll(Collection<Try<T>> tries) {
 		// map to RuntimeException is only an assertion, can never happen
-		return aFailure.isPresent()
-				? failure(((Failure<?>) aFailure.get()).eError)
-				: success(
-						rTries.stream()
-								.map(t -> t.orThrow(RuntimeException::new))
-								.collect(toList()));
+		return tries
+			.stream()
+			.filter(t -> !t.isSuccess())
+			.findFirst()
+			.<Try<Collection<T>>>map(t -> failure(((Failure<?>) t).error))
+			.orElseGet(() -> success(tries
+				.stream()
+				.map(t -> t.orThrow(RuntimeException::new))
+				.collect(toList())));
 	}
 
-	/***************************************
+	/**
 	 * Converts a stream of attempted executions into a try of a stream of
 	 * successful values.
 	 *
-	 * @param rTries The stream of tries to convert
-	 *
+	 * @param tries The stream of tries to convert
 	 * @return A new try that contains a stream of successful values
 	 */
-	public static <T> Try<Stream<T>> ofSuccessful(Stream<Try<T>> rTries) {
+	public static <T> Try<Stream<T>> ofSuccessful(Stream<Try<T>> tries) {
 		// map to RuntimeException is only an assertion, can never happen
-		return Try.now(
-				() -> rTries.filter(Try::isSuccess)
-						.map(t -> t.orThrow(RuntimeException::new)));
+		return Try.now(() -> tries
+			.filter(Try::isSuccess)
+			.map(t -> t.orThrow(RuntimeException::new)));
 	}
 
-	/***************************************
+	/**
 	 * Returns a new instance that represents the immediate execution of the
 	 * given {@link Runnable}. The returned instance either represents a
 	 * successful execution or a failure if the execution failed.
 	 *
 	 * <p>
-	 * Because a runnable doesn't return a value the generic type of the
-	 * result is VOID and consequently the wrapped value is NULL. Therefore
-	 * mapping or consuming the returned instance doesn't make sense. The main
-	 * purpose of this method is to serve as a compact alternative to try/catch
-	 * blocks, like in this example:
+	 * Because a runnable doesn't return a value the generic type of the result
+	 * is VOID and consequently the wrapped value is NULL. Therefore mapping or
+	 * consuming the returned instance doesn't make sense. The main purpose of
+	 * this method is to serve as a compact alternative to try/catch blocks,
+	 * like in this example:
 	 * </p>
 	 *
 	 * <pre>
 	 * Try.run(() -&gt; invokeWithPossibleFailure()).orElse(e -&gt; handleError(e));
 	 * </pre>
 	 *
-	 * @param fCode The code to execute
-	 *
+	 * @param code The code to execute
 	 * @return The new instance
 	 */
-	public static Try<Void> run(ThrowingRunnable fCode) {
+	public static Try<Void> run(ThrowingRunnable code) {
 		try {
-			fCode.run();
+			code.run();
 
 			return new Success<>(null);
 		} catch (Exception e) {
@@ -211,172 +202,153 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 		}
 	}
 
-	/***************************************
+	/**
 	 * Returns an instance that represents a failed execution.
 	 *
-	 * @param rValue eError The error exception
-	 *
+	 * @param value eError The error exception
 	 * @return The failure instance
 	 */
-	@SuppressWarnings("unchecked")
-	public static <T> Try<T> success(T rValue) {
-		return new Success<>(rValue);
+	public static <T> Try<T> success(T value) {
+		return new Success<>(value);
 	}
 
-	// ~ Methods ----------------------------------------------------------------
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	@SuppressWarnings("unchecked")
+	public <V, R, N extends Monad<V, Try<?>>> Try<R> and(N other,
+		BiFunction<? super T, ? super V, ? extends R> join) {
+		return (Try<R>) Monad.super.and(other, join);
+	}
 
-	/***************************************
+	/**
+	 * Filter this try according to the given criteria by returning a try that
+	 * is successful if this try is successful and the wrapped value fulfills
+	 * the criteria, or a failure otherwise.
+	 *
+	 * @param criteria A predicate defining the filter criteria
+	 * @return The resulting try
+	 */
+	public Try<T> filter(Predicate<T> criteria) {
+		return flatMap(v -> criteria.test(v) ?
+		                    success(v) :
+		                    failure(new Exception("Criteria not met by " + v)));
+	}
+
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
 	public abstract <R, N extends Monad<R, Try<?>>> Try<R> flatMap(
-			Function<? super T, N> fMap);
+		Function<? super T, N> mapper);
 
-	/***************************************
+	/**
+	 * A semantic alternative to {@link #then(Consumer)}.
+	 *
+	 * @param consumer The consumer to invoke
+	 * @return The resulting try for chained invocations
+	 */
+	public final Try<T> ifSuccessful(Consumer<? super T> consumer) {
+		return then(consumer);
+	}
+
+	/**
 	 * Checks whether the execution was successful.
 	 *
-	 * @return TRUE if this try was executed successfully, FALSE if an exception
-	 *         occurred
+	 * @return TRUE if this try was executed successfully, FALSE if an
+	 * exception
+	 * occurred
 	 */
 	public abstract boolean isSuccess();
 
-	/***************************************
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	@SuppressWarnings("unchecked")
+	public <R> Try<R> map(Function<? super T, ? extends R> mapper) {
+		return flatMap(t -> Try.now(() -> mapper.apply(t)));
+	}
+
+	/**
 	 * Redefined here to change the return type.
 	 *
 	 * @see Functor#orElse(Consumer)
 	 */
 	@Override
-	public abstract Try<T> orElse(Consumer<Exception> fHandler);
+	public abstract Try<T> orElse(Consumer<Throwable> handler);
 
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	@SuppressWarnings("unchecked")
-	public <V, R, N extends Monad<V, Try<?>>> Try<R> and(
-			N rOther,
-			BiFunction<? super T, ? super V, ? extends R> fJoin) {
-		return (Try<R>) Monad.super.and(rOther, fJoin);
+	public Try<T> then(Consumer<? super T> consumer) {
+		return (Try<T>) Monad.super.then(consumer);
 	}
 
-	/***************************************
-	 * Filter this try according to the given criteria by returning a try that
-	 * is successful if this try is successful and the wrapped value fulfills
-	 * the criteria, or a failure otherwise.
-	 *
-	 * @param pCriteria A predicate defining the filter criteria
-	 *
-	 * @return The resulting try
-	 */
-	@SuppressWarnings("unchecked")
-	public Try<T> filter(Predicate<T> pCriteria) {
-		return flatMap(
-				v -> pCriteria.test(v)
-						? success(v)
-						: failure(new Exception("Criteria not met by " + v)));
-	}
-
-	/***************************************
-	 * A semantic alternative to {@link #then(Consumer)}.
-	 *
-	 * @param fConsumer The consumer to invoke
-	 *
-	 * @return The resulting try for chained invocations
-	 */
-	public final Try<T> ifSuccessful(Consumer<? super T> fConsumer) {
-		return then(fConsumer);
-	}
-
-	/***************************************
-	 * {@inheritDoc}
-	 */
-	@Override
-	@SuppressWarnings("unchecked")
-	public <R> Try<R> map(Function<? super T, ? extends R> fMap) {
-		return flatMap(t -> Try.now(() -> fMap.apply(t)));
-	}
-
-	/***************************************
-	 * {@inheritDoc}
-	 */
-	@Override
-	public Try<T> then(Consumer<? super T> fConsumer) {
-		return (Try<T>) Monad.super.then(fConsumer);
-	}
-
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
 	public String toString() {
-		return String.format(
-				"%s[%s]",
-				getClass().getSimpleName(),
-				getDescribingValue());
+		return String.format("%s[%s]", getClass().getSimpleName(),
+			getDescribingValue());
 	}
 
-	/***************************************
+	/**
 	 * Returns a value that describes this instance's state.
 	 *
 	 * @return The string value
 	 */
 	abstract Object getDescribingValue();
 
-	// ~ Inner Classes ----------------------------------------------------------
-
-	/********************************************************************
+	/**
 	 * The implementation of successful tries.
 	 *
 	 * @author eso
 	 */
 	static class Failure<T> extends Try<T> {
 
-		// ~ Instance fields ----------------------------------------------------
+		private final Throwable error;
 
-		private final Exception eError;
-
-		// ~ Constructors -------------------------------------------------------
-
-		/***************************************
+		/**
 		 * Creates a new instance.
 		 *
-		 * @param eError rValue The successfully created value
+		 * @param error rValue The successfully created value
 		 */
-		Failure(Exception eError) {
-			this.eError = eError;
+		Failure(Throwable error) {
+			this.error = error;
 		}
 
-		// ~ Methods ------------------------------------------------------------
-
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public boolean equals(Object rObject) {
-			return this == rObject ||
-					(rObject instanceof Failure &&
-							Objects.equals(eError, ((Failure<?>) rObject).eError));
+		public boolean equals(Object o) {
+			return this == o || (o instanceof Failure &&
+				Objects.equals(error, ((Failure<?>) o).error));
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		@SuppressWarnings("unchecked")
 		public <R, N extends Monad<R, Try<?>>> Try<R> flatMap(
-				Function<? super T, N> fMap) {
+			Function<? super T, N> mapper) {
 			return (Try<R>) this;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public int hashCode() {
-			return Objects.hashCode(eError);
+			return Objects.hashCode(error);
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
@@ -384,74 +356,70 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 			return false;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public Try<T> orElse(Consumer<Exception> fHandler) {
-			fHandler.accept(eError);
+		public Try<T> orElse(Consumer<Throwable> handler) {
+			handler.accept(error);
 
 			return this;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public final T orFail() throws Exception {
-			throw eError;
+		public final T orFail() throws Throwable {
+			throw error;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orGet(Supplier<T> fSupply) {
-			return fSupply.get();
+		public T orGet(Supplier<T> supplier) {
+			return supplier.get();
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public <E extends Exception> T orThrow(
-				Function<Exception, E> fMapException) throws E {
-			throw fMapException.apply(eError);
+		public <E extends Throwable> T orThrow(
+			Function<Throwable, E> exceptionMapper) throws E {
+			throw exceptionMapper.apply(error);
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orUse(T rFailureResult) {
-			return rFailureResult;
+		public T orUse(T defaultValue) {
+			return defaultValue;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		String getDescribingValue() {
-			return eError.getMessage();
+			return error.getMessage();
 		}
 	}
 
-	/********************************************************************
+	/**
 	 * The implementation of lazy tries with deferred evaluation.
 	 *
 	 * @author eso
 	 */
 	static class Lazy<T> extends Try<T> {
 
-		// ~ Instance fields ----------------------------------------------------
-
 		private final ThrowingSupplier<T> fValueSupplier;
 
 		private Option<Try<T>> aResult = Option.none();
 
-		// ~ Constructors -------------------------------------------------------
-
-		/***************************************
+		/**
 		 * Creates a new instance.
 		 *
 		 * @param fValueSupplier rValue The successfully created value
@@ -460,41 +428,37 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 			this.fValueSupplier = fValueSupplier;
 		}
 
-		// ~ Methods ------------------------------------------------------------
-
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public boolean equals(Object rObject) {
-			return this == rObject ||
-					(rObject instanceof Lazy &&
-							(aResult.exists()
-									? Objects.equals(aResult, ((Lazy<?>) rObject).aResult)
-									: Objects.equals(
-											fValueSupplier,
-											((Lazy<?>) rObject).fValueSupplier)));
+			return this == rObject || (rObject instanceof Lazy &&
+				(aResult.exists() ?
+				 Objects.equals(aResult, ((Lazy<?>) rObject).aResult) :
+				 Objects.equals(fValueSupplier,
+					 ((Lazy<?>) rObject).fValueSupplier)));
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public <R, N extends Monad<R, Try<?>>> Try<R> flatMap(
-				Function<? super T, N> fMap) {
-			return lazy(() -> applyFlatMapping(fMap));
+			Function<? super T, N> mapper) {
+			return lazy(() -> applyFlatMapping(mapper));
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public int hashCode() {
 			return Objects.hashCode(
-					aResult.exists() ? aResult : fValueSupplier);
+				aResult.exists() ? aResult : fValueSupplier);
 		}
 
-		/***************************************
+		/**
 		 * Testing for success needs to perform the lazy evaluation.
 		 *
 		 * @see Try#isSuccess()
@@ -504,81 +468,94 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 			return getResult().isSuccess();
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public <R> Try<R> map(Function<? super T, ? extends R> fMap) {
-			return lazy(() -> fMap.apply(getResult().orFail()));
+		public <R> Try<R> map(Function<? super T, ? extends R> mapper) {
+			return lazy(() -> {
+				try {
+					return mapper.apply(getResult().orFail());
+				} catch (Throwable throwable) {
+					throw new RuntimeException(throwable);
+				}
+			});
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public Try<T> orElse(Consumer<Exception> fHandler) {
+		public Try<T> orElse(Consumer<Throwable> handler) {
 			// orElse() will always be invoked on Success or Failure
-			return flatMap(t -> getResult().orElse(fHandler));
+			return flatMap(t -> getResult().orElse(handler));
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public final T orFail() throws Exception {
+		public final T orFail() throws Throwable {
 			return getResult().orFail();
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orGet(Supplier<T> fSupply) {
-			return getResult().orGet(fSupply);
+		public T orGet(Supplier<T> supplier) {
+			return getResult().orGet(supplier);
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public <E extends Exception> T orThrow(
-				Function<Exception, E> fMapException) throws E {
-			return getResult().orThrow(fMapException);
+		public <E extends Throwable> T orThrow(
+			Function<Throwable, E> exceptionMapper) throws E {
+			return getResult().orThrow(exceptionMapper);
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orUse(T rDefault) {
-			return getResult().orUse(rDefault);
+		public T orUse(T defaultValue) {
+			return getResult().orUse(defaultValue);
 		}
 
-		/***************************************
-		 * Internal method to apply a {@link #flatMap(Function)} function to the
+		/**
+		 * Internal method to apply a {@link #flatMap(Function)} function to
+		 * the
 		 * result of this instance.
 		 *
 		 * @param fMap The mapping function
-		 *
 		 * @return The mapped Try instance
-		 *
 		 * @throws Exception If accessing a try result fails
 		 */
 		@SuppressWarnings("unchecked")
 		<R, N extends Monad<R, Try<?>>> R applyFlatMapping(
-				Function<? super T, N> fMap) throws Exception {
-			return fMap.apply(getResult().orFail()).orFail();
+			Function<? super T, N> fMap) throws Exception {
+			try {
+				return fMap.apply(getResult().orFail()).orFail();
+			} catch (Throwable throwable) {
+				throw new RuntimeException(throwable);
+			}
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		Object getDescribingValue() {
-			return aResult.exists() ? aResult.orFail() : fValueSupplier;
+			try {
+				return aResult.exists() ? aResult.orFail() : fValueSupplier;
+			} catch (Throwable throwable) {
+				throw new RuntimeException(throwable);
+			}
 		}
 
-		/***************************************
+		/**
 		 * Performs the lazy evaluation of this instance if not performed
 		 * before.
 		 *
@@ -595,24 +572,24 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 			}
 
 			// this will never fail
-			return aResult.orFail();
+			try {
+				return aResult.orFail();
+			} catch (Throwable throwable) {
+				throw new RuntimeException(throwable);
+			}
 		}
 	}
 
-	/********************************************************************
+	/**
 	 * The implementation of successful tries.
 	 *
 	 * @author eso
 	 */
 	static class Success<T> extends Try<T> {
 
-		// ~ Instance fields ----------------------------------------------------
-
 		private final T rValue;
 
-		// ~ Constructors -------------------------------------------------------
-
-		/***************************************
+		/**
 		 * Creates a new instance.
 		 *
 		 * @param rValue The successfully created value
@@ -621,29 +598,26 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 			this.rValue = rValue;
 		}
 
-		// ~ Methods ------------------------------------------------------------
-
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public boolean equals(Object rObject) {
-			return this == rObject ||
-					(rObject instanceof Success &&
-							Objects.equals(rValue, ((Success<?>) rObject).rValue));
+			return this == rObject || (rObject instanceof Success &&
+				Objects.equals(rValue, ((Success<?>) rObject).rValue));
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		@SuppressWarnings("unchecked")
 		public <R, N extends Monad<R, Try<?>>> Try<R> flatMap(
-				Function<? super T, N> fMap) {
-			return (Try<R>) fMap.apply(rValue);
+			Function<? super T, N> mapper) {
+			return (Try<R>) mapper.apply(rValue);
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
@@ -651,7 +625,7 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 			return Objects.hashCode(rValue);
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
@@ -659,48 +633,48 @@ public abstract class Try<T> implements Monad<T, Try<?>> {
 			return true;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public Try<T> orElse(Consumer<Exception> fHandler) {
+		public Try<T> orElse(Consumer<Throwable> handler) {
 			return this;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public final T orFail() {
+		public final T orFail() throws Throwable {
 			return rValue;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orGet(Supplier<T> fSupply) {
+		public T orGet(Supplier<T> supplier) {
 			return rValue;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public <E extends Exception> T orThrow(
-				Function<Exception, E> fMapException) throws E {
+		public <E extends Throwable> T orThrow(
+			Function<Throwable, E> exceptionMapper) throws E {
 			return rValue;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orUse(T rDefault) {
+		public T orUse(T defaultValue) {
 			return rValue;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override

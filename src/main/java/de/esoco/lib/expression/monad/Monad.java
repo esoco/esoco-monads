@@ -20,15 +20,14 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-
-/********************************************************************
+/**
  * Interface of a {@link Functor} extension that provides the monadic method
  * {@link #flatMap(Function)} for transformation into derived monads. The
  * generic monad type has been relaxed to <code>Monad&lt;?,M&gt;</code> because
- * otherwise the generic declaration of monadic methods like {@link
- * #flatMap(Function)} would not be possible with Java's type system. Subclasses
- * therefore need to declare their own type at that position with a wildcard
- * parameter, e.g. <code>SubMonad&lt;T&gt; extends Monad&lt;T,
+ * otherwise the generic declaration of monadic methods like
+ * {@link #flatMap(Function)} would not be possible with Java's type system.
+ * Subclasses therefore need to declare their own type at that position with a
+ * wildcard parameter, e.g. <code>SubMonad&lt;T&gt; extends Monad&lt;T,
  * SubMonad&lt;?&gt;&gt;</code>. This type is not further exposed in the API and
  * is only needed for the type hierarchy to work.
  *
@@ -36,26 +35,12 @@ import java.util.function.Function;
  */
 public interface Monad<T, M extends Monad<?, M>> extends Functor<T> {
 
-	//~ Methods ----------------------------------------------------------------
-
-	/***************************************
-	 * Maps this instance into another monad by applying a mapping function to
-	 * the enclosed value that produces the new monad. Implementations should
-	 * override the return type to their specific type because the Java type
-	 * system provides no way to generically define the method return type
-	 * needed for this case.
-	 *
-	 * @param  fMap The monad mapping function
-	 *
-	 * @return The mapped and flattened monad
-	 */
-	<R, N extends Monad<R, M>> Monad<R, M> flatMap(
-		Function<? super T, N> fMap);
-
-	/***************************************
-	 * Combines this monad with another monad into a new monad of the same type.
+	/**
+	 * Combines this monad with another monad into a new monad of the same
+	 * type.
 	 * This is done by invoking {@link #flatMap(Function)} on this instance and
-	 * "lifting" the other monad by invoking it's {@link #map(Function)} method.
+	 * "lifting" the other monad by invoking it's {@link #map(Function)}
+	 * method.
 	 * Therefore this type of method is sometimes also called "lift" or
 	 * "liftM2".
 	 *
@@ -65,40 +50,50 @@ public interface Monad<T, M extends Monad<?, M>> extends Functor<T> {
 	 * type. The explicit declaration in subclasses is necessary because of the
 	 * limitations of Java's generic type system.</p>
 	 *
-	 * @param  rOther The other monad to combine with
-	 * @param  fJoin  A binary function that joins the values of both monads
-	 *
+	 * @param other The other monad to combine with
+	 * @param join  A binary function that joins the values of both monads
 	 * @return The new joined monad
 	 */
-	@SuppressWarnings("unchecked")
-	default <V, R, N extends Monad<V, M>> Monad<R, M> and(
-		N											  rOther,
-		BiFunction<? super T, ? super V, ? extends R> fJoin) {
-		return flatMap(t -> rOther.map(v -> fJoin.apply(t, v)));
+	default <V, R, N extends Monad<V, M>> Monad<R, M> and(N other,
+		BiFunction<? super T, ? super V, ? extends R> join) {
+		return flatMap(t -> other.map(v -> join.apply(t, v)));
 	}
 
-	/***************************************
+	/**
+	 * Maps this instance into another monad by applying a mapping function to
+	 * the enclosed value that produces the new monad. Implementations should
+	 * override the return type to their specific type because the Java type
+	 * system provides no way to generically define the method return type
+	 * needed for this case.
+	 *
+	 * @param mapper The monad mapping function
+	 * @return The mapped and flattened monad
+	 */
+	<R, N extends Monad<R, M>> Monad<R, M> flatMap(
+		Function<? super T, N> mapper);
+
+	/**
 	 * Redefined here to change the return type to Monad. Subclasses can
-	 * typically implement this by invoking their {@link #flatMap(Function)} and
+	 * typically implement this by invoking their {@link #flatMap(Function)}
+	 * and
 	 * declare their own type as the return type.
 	 *
 	 * @see Functor#map(Function)
 	 */
 	@Override
-	<R> Monad<R, M> map(Function<? super T, ? extends R> fMap);
+	<R> Monad<R, M> map(Function<? super T, ? extends R> mapper);
 
-	/***************************************
-	 * Redefined here to provide a default implementation and to change the
-	 * return type to Monad. Subclasses can typically just invoke super and
-	 * declare their own type as the return type.
+	/**
+	 * Redefined here to provide a monad-specific default implementation and to
+	 * change the return type to Monad. Subclasses can typically just invoke
+	 * super and declare their own type as the return type.
 	 *
 	 * @see Functor#then(Consumer)
 	 */
 	@Override
-	default Monad<T, M> then(Consumer<? super T> fConsumer) {
+	default Monad<T, M> then(Consumer<? super T> consumer) {
 		return flatMap(t -> {
-			fConsumer.accept(t);
-
+			consumer.accept(t);
 			return this;
 		});
 	}

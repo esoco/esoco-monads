@@ -32,8 +32,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-
-/********************************************************************
+/**
  * A monad that promises to provide a value, typically asynchronously after some
  * background computation.
  *
@@ -41,171 +40,163 @@ import java.util.function.Supplier;
  */
 public abstract class Promise<T> implements Monad<T, Promise<?>> {
 
-	//~ Enums ------------------------------------------------------------------
-
-	/********************************************************************
+	/**
 	 * Enumeration of the possible states a promise can have. The state ACTIVE
-	 * designates a promise that still performs an asynchronous operation, while
+	 * designates a promise that still performs an asynchronous operation,
+	 * while
 	 * all other states are set on completed promises.
 	 */
-	public enum State { ACTIVE, RESOLVED, CANCELLED, FAILED }
+	public enum State {ACTIVE, RESOLVED, CANCELLED, FAILED}
 
-	//~ Static methods ---------------------------------------------------------
-
-	/***************************************
+	/**
 	 * Returns a promise that is completed in the FAILED state.
 	 *
-	 * @param  e The exception of the failure
-	 *
+	 * @param e The exception of the failure
 	 * @return The failed promise
 	 */
 	public static <T> Promise<T> failure(Exception e) {
-		CompletableFuture<T> aStage = new CompletableFuture<>();
+		CompletableFuture<T> stage = new CompletableFuture<>();
 
-		aStage.completeExceptionally(e);
+		stage.completeExceptionally(e);
 
-		return Promise.of(aStage);
+		return Promise.of(stage);
 	}
 
-	/***************************************
+	/**
 	 * Returns a new <b>asynchronous</b> promise for an value provided by a
 	 * {@link CompletionStage} (e.g. a {@link CompletableFuture}).
 	 *
-	 * @param  rStage The completion stage that provides the value
-	 *
+	 * @param stage The completion stage that provides the value
 	 * @return The new asynchronous promise
 	 */
-	public static <T> Promise<T> of(CompletionStage<T> rStage) {
-		return new CompletionStagePromise<>(
-			rStage.thenApply(Promise::resolved));
+	public static <T> Promise<T> of(CompletionStage<T> stage) {
+		return new CompletionStagePromise<>(stage.thenApply(Promise::resolved));
 	}
 
-	/***************************************
+	/**
 	 * Returns a new <b>asynchronous</b> promise for an value provided by an
-	 * instance of {@link Supplier}. This is just a shortcut to invoke {@link
-	 * CompletableFuture#supplyAsync(Supplier)} with the given supplier.
+	 * instance of {@link Supplier}. This is just a shortcut to invoke
+	 * {@link CompletableFuture#supplyAsync(Supplier)} with the given supplier.
 	 *
-	 * @param  fSupplier The supplier of the value
-	 *
+	 * @param supplier The supplier of the value
 	 * @return The new asynchronous promise
 	 */
-	public static <T> Promise<T> of(Supplier<T> fSupplier) {
-		return Promise.of(CompletableFuture.supplyAsync(fSupplier));
+	public static <T> Promise<T> of(Supplier<T> supplier) {
+		return Promise.of(CompletableFuture.supplyAsync(supplier));
 	}
 
-	/***************************************
+	/**
 	 * Converts a collection of promises into a promise of a collection of
 	 * resolved values. The returned promise will only complete when all
 	 * promises have completed successfully. If one or more promise in the
 	 * collection fails the resulting promise will also fail.
 	 *
-	 * @param  rPromises The collection to convert
-	 *
+	 * @param promises The collection to convert
 	 * @return A new promise containing a collection of resolved values or with
-	 *         FAILED state if an input promise failed
+	 * FAILED state if an input promise failed
 	 */
 	public static <T> Promise<Collection<T>> ofAll(
-		Collection<Promise<T>> rPromises) {
+		Collection<Promise<T>> promises) {
 		// list needs to be synchronized because the promises may run in
-		// parallel in which case aResult.add(t) will be invoked concurrently
-		int     nCount  = rPromises.size();
-		List<T> aResult = Collections.synchronizedList(new ArrayList<>(nCount));
+		// parallel in which case result.add(t) will be invoked concurrently
+		int nCount = promises.size();
+		List<T> result = Collections.synchronizedList(new ArrayList<>(nCount));
 
-		CompletableFuture<Collection<T>> aStage = new CompletableFuture<>();
+		CompletableFuture<Collection<T>> stage = new CompletableFuture<>();
 
-		if (rPromises.isEmpty()) {
-			aStage.complete(aResult);
+		if (promises.isEmpty()) {
+			stage.complete(result);
 		} else {
-			rPromises.forEach(
-				rPromise ->
-					rPromise.then(
-						v -> {
-							aResult.add(v);
+			promises.forEach(rPromise -> rPromise.then(v -> {
+				result.add(v);
 
-							if (aResult.size() == nCount) {
-								aStage.complete(aResult);
-							}
-						})
-					.orElse(aStage::completeExceptionally));
+				if (result.size() == nCount) {
+					stage.complete(result);
+				}
+			}).orElse(stage::completeExceptionally));
 		}
 
-		return Promise.of(aStage);
+		return Promise.of(stage);
 	}
 
-	/***************************************
+	/**
 	 * Returns a promise of the first resolved value or failure in a collection
 	 * of promises. The returned promise will complete either successfully or
 	 * with a failure as soon as the first promise in the collection either
 	 * completes successfully or fails with an exception.
 	 *
-	 * @param  rPromises The stream to convert
-	 *
+	 * @param promises The stream to convert
 	 * @return A new promise containing a stream of resolved values
-	 *
 	 * @throws IllegalArgumentException If the argument collection is empty
 	 */
-	public static <T> Promise<T> ofAny(Collection<Promise<T>> rPromises) {
-		if (rPromises.isEmpty()) {
+	public static <T> Promise<T> ofAny(Collection<Promise<T>> promises) {
+		if (promises.isEmpty()) {
 			throw new IllegalArgumentException("At least one promise needed");
 		}
 
-		CompletableFuture<T> aStage = new CompletableFuture<>();
+		CompletableFuture<T> stage = new CompletableFuture<>();
 
-		rPromises.forEach(
-			rPromise ->
-				rPromise.then(aStage::complete)
-				.orElse(aStage::completeExceptionally));
+		promises.forEach(rPromise -> rPromise
+			.then(stage::complete)
+			.orElse(stage::completeExceptionally));
 
-		return Promise.of(aStage);
+		return Promise.of(stage);
 	}
 
-	/***************************************
+	/**
 	 * Returns a new promise with an already resolved value.
 	 *
-	 * @param  rValue The resolved value
-	 *
+	 * @param value The resolved value
 	 * @return The already resolved promise
 	 */
-	public static <T> Promise<T> resolved(T rValue) {
-		return new ResolvedPromise<>(rValue);
+	public static <T> Promise<T> resolved(T value) {
+		return new ResolvedPromise<>(value);
 	}
 
-	//~ Methods ----------------------------------------------------------------
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	@SuppressWarnings("unchecked")
+	public <V, R, N extends Monad<V, Promise<?>>> Promise<R> and(N other,
+		BiFunction<? super T, ? super V, ? extends R> join) {
+		return (Promise<R>) Monad.super.and(other, join);
+	}
 
-	/***************************************
+	/**
 	 * Awaits the resolving of this promise and returns a resolved promise
 	 * instance that can be processed immediately. This method should only be
-	 * called on the end of a promise chain, i.e. after all calls to {@link
-	 * #map(Function)}, {@link #flatMap(Function)}, {@link #then(Consumer)}, and
-	 * {@link #orElse(Consumer)}. Otherwise the await will only apply to the
-	 * asynchronous processing to the step it has been invoked on and later
-	 * steps will still continue asynchronously.
+	 * called on the end of a promise chain, i.e. after all calls to
+	 * {@link #map(Function)}, {@link #flatMap(Function)},
+	 * {@link #then(Consumer)}, and {@link Functor#orElse(Consumer)}. Otherwise
+	 * the await will only apply to the asynchronous processing to the step it
+	 * has been invoked on and later steps will still continue asynchronously.
 	 *
 	 * @return The resolved promise
-	 *
 	 * @throws Exception If resolving the promise fails
 	 */
 	public abstract Promise<T> await() throws Exception;
 
-	/***************************************
+	/**
 	 * Cancels the asynchronous execution of this promise if it hasn't
 	 * terminated yet.
 	 *
 	 * @return TRUE if this promise has been cancelled by the call, FALSE if it
-	 *         had already terminated (by being resolved or cancelled or if the
-	 *         execution has failed)
+	 * had already terminated (by being resolved or cancelled or if the
+	 * execution has failed)
 	 */
 	public abstract boolean cancel();
 
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
 	public abstract <R, N extends Monad<R, Promise<?>>> Promise<R> flatMap(
-		Function<? super T, N> fMap);
+		Function<? super T, N> mapper);
 
-	/***************************************
-	 * Returns the current state of this promise. Due to the asynchronous nature
+	/**
+	 * Returns the current state of this promise. Due to the asynchronous
+	 * nature
 	 * of promises a returned state of {@link State#ACTIVE} is only a momentary
 	 * value that may not be valid anymore after this method returns. In
 	 * general, it is recommended to prefer the monadic functions to operate on
@@ -215,50 +206,14 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 	 */
 	public abstract State getState();
 
-	/***************************************
-	 * Redefined here to change the return type.
-	 *
-	 * @see Functor#orElse(Consumer)
-	 */
-	@Override
-	public abstract Promise<T> orElse(Consumer<Exception> fHandler);
-
-	/***************************************
-	 * Defines the maximum time this promise may try to acquire the promised
-	 * value before failing as unresolved. As promises are immutable objects
-	 * this method will not modify the current instance but returns a new
-	 * instance (if necessary) that will respect the given timeout.
-	 *
-	 * <p>Although it depends on the actual underlying implementation, the
-	 * timeout is typically only respected by blocking methods like {@link
-	 * #orUse(Object)} and defines the maximum wait time from the invocation of
-	 * the respective method.</p>
-	 *
-	 * @param  nTime The timeout value
-	 * @param  eUnit The time unit
-	 *
-	 * @return The resulting promise
-	 */
-	public abstract Promise<T> withTimeout(long nTime, TimeUnit eUnit);
-
-	/***************************************
-	 * {@inheritDoc}
-	 */
-	@Override
-	@SuppressWarnings("unchecked")
-	public <V, R, N extends Monad<V, Promise<?>>> Promise<R> and(
-		N											  rOther,
-		BiFunction<? super T, ? super V, ? extends R> fJoin) {
-		return (Promise<R>) Monad.super.and(rOther, fJoin);
-	}
-
-	/***************************************
-	 * Checks whether this promise has been successfully resolved. If it returns
-	 * TRUE accessing the resolved value with the consuming methods like {@link
-	 * #orUse(Object)}, {@link #orFail()}, {@link #orThrow(Function)}, or {@link
-	 * #orElse(Consumer)} will not block and yield a valid result. This is just
-	 * a shortcut for testing the state with <code>getState() ==
-	 * RESOLVED</code>.
+	/**
+	 * Checks whether this promise has been successfully resolved. If it
+	 * returns
+	 * TRUE accessing the resolved value with the consuming methods like
+	 * {@link #orUse(Object)}, {@link #orFail()}, {@link #orThrow(Function)} ,
+	 * or {@link Functor#orElse(Consumer)} will not block and yield a valid
+	 * result. This is just a shortcut for testing the state with
+	 * <code>getState() == RESOLVED</code>.
 	 *
 	 * @return TRUE if this promise
 	 */
@@ -266,23 +221,31 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		return getState() == State.RESOLVED;
 	}
 
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public <R> Promise<R> map(Function<? super T, ? extends R> fMap) {
-		return flatMap(t -> Promise.resolved(fMap.apply(t)));
+	public <R> Promise<R> map(Function<? super T, ? extends R> mapper) {
+		return flatMap(t -> Promise.resolved(mapper.apply(t)));
 	}
 
-	/***************************************
+	/**
+	 * Redefined here to change the return type.
+	 *
+	 * @see Functor#orElse(Consumer)
+	 */
+	@Override
+	public abstract Promise<T> orElse(Consumer<Throwable> handler);
+
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public Promise<T> then(Consumer<? super T> fConsumer) {
-		return (Promise<T>) Monad.super.then(fConsumer);
+	public Promise<T> then(Consumer<? super T> consumer) {
+		return (Promise<T>) Monad.super.then(consumer);
 	}
 
-	/***************************************
+	/**
 	 * Returns an implementation of {@link Future} that is based on this
 	 * promise.
 	 *
@@ -292,148 +255,153 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		return new PromiseFuture<>(this);
 	}
 
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
 	public String toString() {
-		return String.format(
-			"%s[%s]",
-			getClass().getSimpleName(),
+		return String.format("%s[%s]", getClass().getSimpleName(),
 			isResolved() ? orUse(null) : "unresolved");
 	}
 
-	//~ Inner Classes ----------------------------------------------------------
+	/**
+	 * Defines the maximum time this promise may try to acquire the promised
+	 * value before failing as unresolved. As promises are immutable objects
+	 * this method will not modify the current instance but returns a new
+	 * instance (if necessary) that will respect the given timeout.
+	 *
+	 * <p>Although it depends on the actual underlying implementation, the
+	 * timeout is typically only respected by blocking methods like
+	 * {@link #orUse(Object)} and defines the maximum wait time from the
+	 * invocation of the respective method.</p>
+	 *
+	 * @param time The timeout value
+	 * @param unit The time unit
+	 * @return The resulting promise
+	 */
+	public abstract Promise<T> withTimeout(long time, TimeUnit unit);
 
-	/********************************************************************
+	/**
 	 * A future implementation that wraps a promise.
 	 *
 	 * @author eso
 	 */
 	public static class PromiseFuture<T> implements Future<T> {
 
-		//~ Instance fields ----------------------------------------------------
+		private final Promise<T> promise;
 
-		private final Promise<T> rPromise;
-
-		//~ Constructors -------------------------------------------------------
-
-		/***************************************
+		/**
 		 * Creates a new instance that wraps a certain promise.
 		 *
-		 * @param rPromise The promise to wrap
+		 * @param promise The promise to wrap
 		 */
-		public PromiseFuture(Promise<T> rPromise) {
-			this.rPromise = rPromise;
+		public PromiseFuture(Promise<T> promise) {
+			this.promise = promise;
 		}
 
-		//~ Methods ------------------------------------------------------------
-
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public boolean cancel(boolean bMayInterruptIfRunning) {
-			return rPromise.cancel();
+		public boolean cancel(boolean mayInterruptIfRunning) {
+			return promise.cancel();
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public T get() throws InterruptedException, ExecutionException {
-			return getImpl(rPromise);
+			return getImpl(promise);
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T get(long nTimeout, TimeUnit eUnit) throws InterruptedException,
-														   ExecutionException,
-														   TimeoutException {
-			return getImpl(rPromise.withTimeout(nTimeout, eUnit));
+		public T get(long timeout, TimeUnit unit)
+			throws InterruptedException, ExecutionException, TimeoutException {
+			return getImpl(promise.withTimeout(timeout, unit));
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public boolean isCancelled() {
-			return rPromise.getState() == State.CANCELLED;
+			return promise.getState() == Promise.State.CANCELLED;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public boolean isDone() {
-			return rPromise.getState() != State.ACTIVE;
+			return promise.getState() != Promise.State.ACTIVE;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
-		private T getImpl(Promise<T> rPromise) throws ExecutionException {
+		private T getImpl(Promise<T> promise) throws ExecutionException {
 			try {
-				return rPromise.orFail();
+				return promise.orFail();
 			} catch (RuntimeException | ExecutionException e) {
 				throw e;
 			} catch (Exception e) {
 				throw new ExecutionException(e);
+			} catch (Throwable throwable) {
+				throw new RuntimeException(throwable);
 			}
 		}
 	}
 
-	/********************************************************************
+	/**
 	 * A promise implementation that wraps a {@link CompletionStage}. Final
-	 * operations like {@link #await()} or {@link #isResolved()} will invoke the
+	 * operations like {@link #await()} or {@link #isResolved()} will invoke
+	 * the
 	 * {@link CompletionStage#toCompletableFuture()} method and are therefore
-	 * only compatible with the corresponding implementations (like {@link
-	 * CompletableFuture} itself). But the monadic methods {@link
-	 * #flatMap(Function)}, {@link #map(Function)}, and {@link #then(Consumer)}
-	 * can be applied to any {@link CompletionStage} implementation.
+	 * only compatible with the corresponding implementations (like
+	 * {@link CompletableFuture} itself). But the monadic methods
+	 * {@link #flatMap(Function)}, {@link #map(Function)}, and
+	 * {@link #then(Consumer)} can be applied to any {@link CompletionStage}
+	 * implementation.
 	 *
 	 * @author eso
 	 */
 	static class CompletionStagePromise<T> extends Promise<T> {
 
-		//~ Instance fields ----------------------------------------------------
-
 		// wraps another promise to simplify the implementation of flatMap
-		private final CompletionStage<Promise<T>> rStage;
-		private final long					    nTimeout;
-		private final TimeUnit				    eTimeUnit;
+		private final CompletionStage<Promise<T>> stage;
 
-		//~ Constructors -------------------------------------------------------
+		private final long timeout;
 
-		/***************************************
+		private final TimeUnit timeUnit;
+
+		/**
 		 * Creates a new instance.
 		 *
-		 * @param rStage The completion stage to wrap
+		 * @param stage The completion stage to wrap
 		 */
-		CompletionStagePromise(CompletionStage<Promise<T>> rStage) {
-			this(rStage, -1, null);
+		CompletionStagePromise(CompletionStage<Promise<T>> stage) {
+			this(stage, -1, null);
 		}
 
-		/***************************************
+		/**
 		 * Creates a new instance with a timeout.
 		 *
-		 * @param rStage    The completion stage to wrap
-		 * @param nTimeout  The maximum time to wait for resolving
-		 * @param eTimeUnit The unit of the timeout value
+		 * @param stage    The completion stage to wrap
+		 * @param timeout  The maximum time to wait for resolving
+		 * @param timeUnit The unit of the timeout value
 		 */
-		CompletionStagePromise(CompletionStage<Promise<T>> rStage,
-							   long						   nTimeout,
-							   TimeUnit					   eTimeUnit) {
-			this.rStage    = rStage;
-			this.nTimeout  = nTimeout;
-			this.eTimeUnit = eTimeUnit;
+		CompletionStagePromise(CompletionStage<Promise<T>> stage, long timeout,
+			TimeUnit timeUnit) {
+			this.stage = stage;
+			this.timeout = timeout;
+			this.timeUnit = timeUnit;
 		}
 
-		//~ Methods ------------------------------------------------------------
-
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 *
 		 * @throws Exception
@@ -443,57 +411,53 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 			return getValue();
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public boolean cancel() {
-			return rStage.toCompletableFuture().cancel(false);
+			return stage.toCompletableFuture().cancel(false);
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public boolean equals(Object rObject) {
-			if (this == rObject) {
+		public boolean equals(Object o) {
+			if (this == o) {
 				return true;
 			}
 
-			if (rObject == null ||
-				rObject.getClass() != CompletionStagePromise.class) {
+			if (o == null || o.getClass() != CompletionStagePromise.class) {
 				return false;
 			}
 
-			CompletionStagePromise<?> rOther =
-				(CompletionStagePromise<?>) rObject;
+			CompletionStagePromise<?> other = (CompletionStagePromise<?>) o;
 
-			return nTimeout == rOther.nTimeout &&
-				   eTimeUnit == rOther.eTimeUnit &&
-				   Objects.equals(rStage, rOther.rStage);
+			return timeout == other.timeout && timeUnit == other.timeUnit &&
+				Objects.equals(stage, other.stage);
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public <R, N extends Monad<R, Promise<?>>> Promise<R> flatMap(
-			Function<? super T, N> fMap) {
+			Function<? super T, N> mapper) {
 			return new CompletionStagePromise<>(
-				rStage.thenApplyAsync(p -> p.flatMap(fMap)));
+				stage.thenApplyAsync(p -> p.flatMap(mapper)));
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public State getState() {
-			CompletableFuture<Promise<T>> rFuture =
-				rStage.toCompletableFuture();
+			CompletableFuture<Promise<T>> future = stage.toCompletableFuture();
 
-			if (rFuture.isDone()) {
-				if (rFuture.isCompletedExceptionally()) {
-					if (rFuture.isCancelled()) {
+			if (future.isDone()) {
+				if (future.isCompletedExceptionally()) {
+					if (future.isCancelled()) {
 						return State.CANCELLED;
 					} else {
 						return State.FAILED;
@@ -506,141 +470,135 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 			}
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public int hashCode() {
-			return Objects.hash(rStage, eTimeUnit, nTimeout);
+			return Objects.hash(stage, timeUnit, timeout);
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public Promise<T> orElse(Consumer<Exception> fHandler) {
+		public Promise<T> orElse(Consumer<Throwable> handler) {
 			return new CompletionStagePromise<>(
-				rStage.whenCompleteAsync(
-					(t, e) -> {
-						if (e instanceof Error) {
-							throw (Error) e;
-						} else if (e != null) {
-							fHandler.accept((Exception) e);
-						}
-					}));
+				stage.whenCompleteAsync((t, e) -> {
+					if (e instanceof Error) {
+						throw (Error) e;
+					} else if (e != null) {
+						handler.accept(e);
+					}
+				}));
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orFail() throws Exception {
+		public T orFail() throws Throwable {
 			try {
 				return getValue().orFail();
 			} catch (ExecutionException e) {
 				Throwable cause = e.getCause();
 
 				if (cause instanceof Exception) {
-					throw (Exception) cause;
+					throw cause;
 				} else {
-					throw (Error) e.getCause();
+					throw e.getCause();
 				}
 			}
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orGet(Supplier<T> fSupply) {
+		public T orGet(Supplier<T> supplier) {
 			try {
-				return getValue().orGet(fSupply);
+				return getValue().orGet(supplier);
 			} catch (Exception e) {
-				return fSupply.get();
+				return supplier.get();
 			}
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public <E extends Exception> T orThrow(
-			Function<Exception, E> fMapException) throws E {
+		public <E extends Throwable> T orThrow(
+			Function<Throwable, E> exceptionMapper) throws E {
 			try {
-				return getValue().orThrow(fMapException);
+				return getValue().orThrow(exceptionMapper);
 			} catch (ExecutionException e) {
 				Throwable cause = e.getCause();
 
 				if (cause instanceof Exception) {
-					throw fMapException.apply((Exception) e.getCause());
+					throw exceptionMapper.apply(e.getCause());
 				} else {
 					throw (Error) e.getCause();
 				}
 			} catch (Exception e) {
-				throw fMapException.apply(e);
+				throw exceptionMapper.apply(e);
 			}
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orUse(T rFailureResult) {
+		public T orUse(T defaultValue) {
 			try {
-				return getValue().orUse(rFailureResult);
+				return getValue().orUse(defaultValue);
 			} catch (Exception e) {
-				return rFailureResult;
+				return defaultValue;
 			}
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public Promise<T> withTimeout(long nTime, TimeUnit eUnit) {
-			return new CompletionStagePromise<>(rStage, nTime, eUnit);
+		public Promise<T> withTimeout(long time, TimeUnit unit) {
+			return new CompletionStagePromise<>(stage, time, unit);
 		}
 
-		/***************************************
-		 * Blocks until this promise is resolved, respecting a possible timeout.
+		/**
+		 * Blocks until this promise is resolved, respecting a possible
+		 * timeout.
 		 *
 		 * @return The resolved value
-		 *
-		 * @throws Exception If the stage execution failed or a timeout has been
+		 * @throws Exception If the stage execution failed or a timeout has
+		 * been
 		 *                   reached
 		 */
 		Promise<T> getValue() throws Exception {
-			return nTimeout == -1
-				   ? rStage.toCompletableFuture().get()
-				   : rStage.toCompletableFuture().get(nTimeout, eTimeUnit);
+			return timeout == -1 ?
+			       stage.toCompletableFuture().get() :
+			       stage.toCompletableFuture().get(timeout, timeUnit);
 		}
 	}
 
-	/********************************************************************
+	/**
 	 * A simple wrapper for an already resolved value.
 	 *
 	 * @author eso
 	 */
 	static class ResolvedPromise<T> extends Promise<T> {
 
-		//~ Instance fields ----------------------------------------------------
+		private final T value;
 
-		private final T rValue;
-
-		//~ Constructors -------------------------------------------------------
-
-		/***************************************
+		/**
 		 * Creates an instance that is already resolved with a certain value.
 		 *
-		 * @param rValue The resolved value
+		 * @param value The resolved value
 		 */
-		public ResolvedPromise(T rValue) {
-			this.rValue = rValue;
+		public ResolvedPromise(T value) {
+			this.value = value;
 		}
 
-		//~ Methods ------------------------------------------------------------
-
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
@@ -648,7 +606,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 			return this;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
@@ -656,29 +614,26 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 			return false;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public boolean equals(Object rObject) {
-			return this == rObject ||
-				   (rObject instanceof ResolvedPromise &&
-					Objects.equals(
-					rValue,
-					((ResolvedPromise<?>) rObject).rValue));
+		public boolean equals(Object o) {
+			return this == o || (o instanceof ResolvedPromise &&
+				Objects.equals(value, ((ResolvedPromise<?>) o).value));
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		@SuppressWarnings("unchecked")
 		public <R, N extends Monad<R, Promise<?>>> Promise<R> flatMap(
-			Function<? super T, N> fMap) {
-			return (Promise<R>) fMap.apply(rValue);
+			Function<? super T, N> mapper) {
+			return (Promise<R>) mapper.apply(value);
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
@@ -686,60 +641,60 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 			return State.RESOLVED;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public int hashCode() {
-			return Objects.hashCode(rValue);
+			return Objects.hashCode(value);
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public Promise<T> orElse(Consumer<Exception> fHandler) {
+		public Promise<T> orElse(Consumer<Throwable> handler) {
 			return this;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orFail() {
-			return rValue;
+		public T orFail() throws Throwable {
+			return value;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orGet(Supplier<T> fSupply) {
-			return rValue;
+		public T orGet(Supplier<T> supplier) {
+			return value;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public <E extends Exception> T orThrow(
-			Function<Exception, E> fMapException) throws E {
-			return rValue;
+		public <E extends Throwable> T orThrow(
+			Function<Throwable, E> exceptionMapper) throws E {
+			return value;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public T orUse(T rFailureResult) {
-			return rValue;
+		public T orUse(T defaultValue) {
+			return value;
 		}
 
-		/***************************************
+		/**
 		 * {@inheritDoc}
 		 */
 		@Override
-		public Promise<T> withTimeout(long nTime, TimeUnit eUnit) {
+		public Promise<T> withTimeout(long time, TimeUnit unit) {
 			return this;
 		}
 	}

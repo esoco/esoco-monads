@@ -28,36 +28,39 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
-
-/********************************************************************
+/**
  * A {@link Monad} implementation for optional values.
  *
  * @author eso
  */
 public class Option<T> implements Monad<T, Option<?>> {
 
-	//~ Static fields/initializers ---------------------------------------------
-
 	private static final Option<?> NONE = new Option<>(null);
 
-	//~ Instance fields --------------------------------------------------------
+	private final T value;
 
-	private final T rValue;
-
-	//~ Constructors -----------------------------------------------------------
-
-	/***************************************
+	/**
 	 * Creates a new instance.
 	 *
-	 * @param rValue The value to wrap
+	 * @param value The value to wrap
 	 */
-	private Option(T rValue) {
-		this.rValue = rValue;
+	private Option(T value) {
+		this.value = value;
 	}
 
-	//~ Static methods ---------------------------------------------------------
+	/**
+	 * A semantic alternative to {@link #ofRequired(Object)} that can be
+	 * used as
+	 * a static import.
+	 *
+	 * @param value The value to wrap
+	 * @return The new instance
+	 */
+	public static <T> Option<T> nonNull(T value) {
+		return Option.ofRequired(value);
+	}
 
-	/***************************************
+	/**
 	 * Returns a instance for an undefined value. It's {@link #exists()} method
 	 * will always return FALSE.
 	 *
@@ -68,32 +71,19 @@ public class Option<T> implements Monad<T, Option<?>> {
 		return (Option<T>) NONE;
 	}
 
-	/***************************************
-	 * A semantic alternative to {@link #ofRequired(Object)} that can be used as
-	 * a static import.
-	 *
-	 * @param  rValue The value to wrap
-	 *
-	 * @return The new instance
-	 */
-	public static <T> Option<T> nonNull(T rValue) {
-		return Option.ofRequired(rValue);
-	}
-
-	/***************************************
+	/**
 	 * Returns a new instance that wraps a certain value or {@link #none()} if
 	 * the argument is NULL. To throw an exception if the value is NULL use
 	 * {@link #ofRequired(Object)} instead.
 	 *
-	 * @param  rValue The value to wrap
-	 *
+	 * @param value The value to wrap
 	 * @return The new instance
 	 */
-	public static <T> Option<T> of(T rValue) {
-		return rValue != null ? new Option<>(rValue) : none();
+	public static <T> Option<T> of(T value) {
+		return value != null ? new Option<>(value) : none();
 	}
 
-	/***************************************
+	/**
 	 * Converts a collection of options into either an existing option of a
 	 * collection of values if all options in the collection exist or into
 	 * {@link #none()} if one or more options in the collection do not exist.
@@ -102,289 +92,285 @@ public class Option<T> implements Monad<T, Option<?>> {
 	 * performed on a stream (of possibly indefinite size) because existence
 	 * needs to be determined upon invocation.</p>
 	 *
-	 * @param  rOptions The collection of options to convert
-	 *
+	 * @param options The collection of options to convert
 	 * @return A new option of a collection of the values of all options or
-	 *         {@link #none()} if one or more options do not exist
+	 * {@link #none()} if one or more options do not exist
 	 */
 	public static <T> Option<Collection<T>> ofAll(
-		Collection<Option<T>> rOptions) {
+		Collection<Option<T>> options) {
 		Optional<Option<T>> aMissing =
-			rOptions.stream().filter(o -> !o.exists()).findFirst();
+			options.stream().filter(o -> !o.exists()).findFirst();
 
-		return aMissing.isPresent()
-			   ? none()
-			   : Option.of(
-			rOptions.stream().map(Option::orFail).collect(toList()));
+		return aMissing.isPresent() ?
+		       none() :
+		       Option.of(options.stream().map(tOption -> {
+			       try {
+				       return tOption.orFail();
+			       } catch (Throwable throwable) {
+				       throw new RuntimeException(throwable);
+			       }
+		       }).collect(toList()));
 	}
 
-	/***************************************
+	/**
 	 * Converts a stream of options into an option of a stream of existing
 	 * values.
 	 *
-	 * @param  rOptions The stream to convert
-	 *
+	 * @param options The stream to convert
 	 * @return A new option containing a stream of existing values
 	 */
-	public static <T> Option<Stream<T>> ofExisting(Stream<Option<T>> rOptions) {
-		return Option.of(rOptions.filter(Option::exists).map(o -> o.rValue));
+	public static <T> Option<Stream<T>> ofExisting(Stream<Option<T>> options) {
+		return Option.of(options.filter(Option::exists).map(o -> o.value));
 	}
 
-	/***************************************
+	/**
 	 * Returns a new instance with the same state as a Java {@link Optional}.
 	 *
-	 * @param  rOptional The input value
-	 *
+	 * @param optional The input value
 	 * @return The new instance
 	 */
-	public static <T> Option<T> ofOptional(Optional<T> rOptional) {
-		return rOptional.isPresent() ? new Option<>(rOptional.get()) : none();
+	public static <T> Option<T> ofOptional(Optional<T> optional) {
+		return optional.isPresent() ? new Option<>(optional.get()) : none();
 	}
 
-	/***************************************
-	 * Returns a new instance that wraps a certain value which must not be NULL.
+	/**
+	 * Returns a new instance that wraps a certain value which must not be
+	 * NULL.
 	 *
-	 * @param  rValue The required value to wrap
-	 *
+	 * @param value The required value to wrap
 	 * @return The new instance
-	 *
 	 * @throws NullPointerException If the given value is NULL
 	 */
-	public static <T> Option<T> ofRequired(T rValue) {
-		Objects.requireNonNull(rValue);
+	public static <T> Option<T> ofRequired(T value) {
+		Objects.requireNonNull(value);
 
-		return Option.of(rValue);
+		return Option.of(value);
 	}
 
-	/***************************************
+	/**
 	 * A semantic alternative to {@link #of(Object)} that can be used as a
 	 * static import.
 	 *
-	 * @param  rValue The value to wrap
-	 *
+	 * @param value The value to wrap
 	 * @return The new instance
 	 */
-	public static <T> Option<T> option(T rValue) {
-		return Option.of(rValue);
+	public static <T> Option<T> option(T value) {
+		return Option.of(value);
 	}
 
-	//~ Methods ----------------------------------------------------------------
-
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
-	public <V, R, N extends Monad<V, Option<?>>> Option<R> and(
-		N											  rOther,
-		BiFunction<? super T, ? super V, ? extends R> fJoin) {
-		return (Option<R>) Monad.super.and(rOther, fJoin);
+	public <V, R, N extends Monad<V, Option<?>>> Option<R> and(N other,
+		BiFunction<? super T, ? super V, ? extends R> join) {
+		return (Option<R>) Monad.super.and(other, join);
 	}
 
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public boolean equals(Object rObject) {
-		return this == rObject ||
-			   (rObject instanceof Option &&
-				Objects.equals(rValue, ((Option<?>) rObject).rValue));
+	public boolean equals(Object o) {
+		return this == o || (o instanceof Option &&
+			Objects.equals(value, ((Option<?>) o).value));
 	}
 
-	/***************************************
+	/**
 	 * Test whether this option represents an existing value.
 	 *
-	 * @return TRUE if this option exists, FALSE if it is undefined ({@link
-	 *         #none()})
+	 * @return TRUE if this option exists, FALSE if it is undefined
+	 * ({@link #none()})
 	 */
 	public final boolean exists() {
-		return rValue != null;
+		return value != null;
 	}
 
-	/***************************************
-	 * Filter this option according to the given criteria by returning an option
+	/**
+	 * Filter this option according to the given criteria by returning an
+	 * option
 	 * that exists depending on whether the value fulfills the criteria.
 	 *
-	 * @param  pCriteria A predicate defining the filter criteria
-	 *
+	 * @param criteria A predicate defining the filter criteria
 	 * @return The resulting option
 	 */
 	@SuppressWarnings("unchecked")
-	public Option<T> filter(Predicate<T> pCriteria) {
-		return flatMap(v -> pCriteria.test(v) ? this : none());
+	public Option<T> filter(Predicate<T> criteria) {
+		return flatMap(v -> criteria.test(v) ? this : none());
 	}
 
-	/***************************************
+	/**
 	 * Converts this option into another option by applying a mapping function
 	 * that produces an option with the target type from the value of this
 	 * instance.
 	 *
 	 * <p>Other than Java's {@link Optional} this implementation respects the
 	 * monad laws of left and right identity as well as associativity. It does
-	 * so by considering the not existing value {@link #none()} as equivalent to
+	 * so by considering the not existing value {@link #none()} as
+	 * equivalent to
 	 * NULL. Therefore, if the mapping function is invoked on a non-existing
-	 * option it will receive NULL as it's argument and should be able to handle
+	 * option it will receive NULL as it's argument and should be able to
+	 * handle
 	 * it.</p>
 	 *
 	 * <p>If the mapping function throws a {@link NullPointerException} it will
-	 * be caught and the returned option will be {@link #none()}. This allows to
+	 * be caught and the returned option will be {@link #none()}. This
+	 * allows to
 	 * use functions that are not NULL-aware as an argument. It has the
 	 * limitation that NPEs caused by nested code will not be thrown.</p>
 	 *
-	 * @param  fMap The mapping function
-	 *
+	 * @param mapper The mapping function
 	 * @return The resulting option
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
 	public <R, N extends Monad<R, Option<?>>> Option<R> flatMap(
-		Function<? super T, N> fMap) {
+		Function<? super T, N> mapper) {
 		try {
-			return (Option<R>) fMap.apply(rValue);
+			return (Option<R>) mapper.apply(value);
 		} catch (NullPointerException e) {
 			return none();
 		}
 	}
 
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
 	public int hashCode() {
-		return Objects.hashCode(rValue);
+		return Objects.hashCode(value);
 	}
 
-	/***************************************
+	/**
 	 * A semantic alternative to {@link #then(Consumer)}.
 	 *
-	 * @param  fConsumer The consumer to invoke
-	 *
+	 * @param consumer The consumer to invoke
 	 * @return The resulting option for chained invocations
 	 */
-	public final Option<T> ifExists(Consumer<? super T> fConsumer) {
-		return then(fConsumer);
+	public final Option<T> ifExists(Consumer<? super T> consumer) {
+		return then(consumer);
 	}
 
-	/***************************************
+	/**
 	 * A convenience method for a fast test of options for existence and a
 	 * certain value datatype. This is especially helpful for options that are
-	 * declared with a generic or common type (like <code>Option&lt;?&gt;</code>
+	 * declared with a generic or common type (like <code>Option&lt;?&gt;
+	 * </code>
 	 * or <code>Option&lt;Object&gt;</code>).
 	 *
-	 * @param  rDatatype The datatype to test the wrapped value against
-	 *
+	 * @param datatype The datatype to test the wrapped value against
 	 * @return TRUE if this option exists and the value can be assigned to the
-	 *         given datatype
+	 * given datatype
 	 */
-	public final boolean is(Class<?> rDatatype) {
-		return exists() && rDatatype.isAssignableFrom(rValue.getClass());
+	public final boolean is(Class<?> datatype) {
+		return exists() && datatype.isAssignableFrom(value.getClass());
 	}
 
-	/***************************************
+	/**
 	 * Maps this option to another one containing the result of invoking a
-	 * mapping function on this instance's value. Other than Java's {@link
-	 * Optional} this implementation respects the monad laws. See the
+	 * mapping function on this instance's value. Other than Java's
+	 * {@link Optional} this implementation respects the monad laws. See the
 	 * description of {@link #flatMap(Function)} for details.
 	 *
-	 * @param  fMap The mapping function
-	 *
+	 * @param mapper The mapping function
 	 * @return The mapped option
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
-	public <R> Option<R> map(Function<? super T, ? extends R> fMap) {
-		return flatMap(t -> Option.of(fMap.apply(t)));
+	public <R> Option<R> map(Function<? super T, ? extends R> mapper) {
+		return flatMap(t -> Option.of(mapper.apply(t)));
 	}
 
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public Option<T> orElse(Consumer<Exception> fHandler) {
+	public Option<T> orElse(Consumer<Throwable> handler) {
 		if (!exists()) {
-			fHandler.accept(new NullPointerException());
+			handler.accept(new NullPointerException());
 		}
 
 		return this;
 	}
 
-	/***************************************
-	 * A variant of {@link #orElse(Consumer)} that simply executes some code if
-	 * this option doesn't exist.
+	/**
+	 * A variant of {@link Functor#orElse(Consumer)} that simply executes some
+	 * code if this option doesn't exist.
 	 *
-	 * @param fCode The code to execute
+	 * @param code The code to execute
 	 */
-	public void orElse(Runnable fCode) {
+	public void orElse(Runnable code) {
 		if (!exists()) {
-			fCode.run();
+			code.run();
 		}
 	}
 
-	/***************************************
+	/**
 	 * Throws a {@link NullPointerException} if this option does not exist.
 	 *
 	 * @see Functor#orFail()
 	 */
 	@Override
-	public T orFail() {
+	public T orFail() throws Throwable {
 		if (exists()) {
-			return rValue;
+			return value;
 		} else {
 			throw new NullPointerException();
 		}
 	}
 
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public T orGet(Supplier<T> fSupply) {
-		return exists() ? rValue : fSupply.get();
+	public T orGet(Supplier<T> supplier) {
+		return exists() ? value : supplier.get();
 	}
 
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public <E extends Exception> T orThrow(Function<Exception, E> fMapException)
-		throws E {
+	public <E extends Throwable> T orThrow(
+		Function<Throwable, E> exceptionMapper) throws E {
 		if (exists()) {
-			return rValue;
+			return value;
 		} else {
-			throw fMapException.apply(new NullPointerException());
+			throw exceptionMapper.apply(new NullPointerException());
 		}
 	}
 
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public T orUse(T rDefault) {
-		return exists() ? rValue : rDefault;
+	public T orUse(T defaultValue) {
+		return exists() ? value : defaultValue;
 	}
 
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public Option<T> then(Consumer<? super T> fConsumer) {
-		return exists() ? (Option<T>) Monad.super.then(fConsumer) : this;
+	public Option<T> then(Consumer<? super T> consumer) {
+		return exists() ? (Option<T>) Monad.super.then(consumer) : this;
 	}
 
-	/***************************************
+	/**
 	 * Returns an {@link Optional} instance that represents this instance.
 	 *
 	 * @return The optional instance
 	 */
 	public Optional<T> toOptional() {
-		return Optional.ofNullable(rValue);
+		return Optional.ofNullable(value);
 	}
 
-	/***************************************
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
 	public String toString() {
-		return exists() ? rValue.toString() : "[none]";
+		return exists() ? value.toString() : "[none]";
 	}
 }

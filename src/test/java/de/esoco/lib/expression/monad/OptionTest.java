@@ -16,11 +16,8 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 package de.esoco.lib.expression.monad;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import de.esoco.lib.datatype.Pair;
+import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -28,9 +25,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.junit.jupiter.api.Test;
-
-import de.esoco.lib.datatype.Pair;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Test of {@link Option}.
@@ -47,11 +47,11 @@ public class OptionTest extends MonadTest {
 	public void testAnd() {
 		LocalDate today = LocalDate.now();
 
-		Option<LocalDate> aLocalDateOption = Option.of(today.getYear())
-				.and(Option.of(today.getMonth()), (y, m) -> Pair.of(y, m))
-				.and(
-						Option.of(today.getDayOfMonth()),
-						(ym, d) -> LocalDate.of(ym.first(), ym.second(), d));
+		Option<LocalDate> aLocalDateOption = Option
+			.of(today.getYear())
+			.and(Option.of(today.getMonth()), (y, m) -> Pair.of(y, m))
+			.and(Option.of(today.getDayOfMonth()),
+				(ym, d) -> LocalDate.of(ym.first(), ym.second(), d));
 
 		aLocalDateOption.then(d -> assertEquals(today, d));
 	}
@@ -62,9 +62,8 @@ public class OptionTest extends MonadTest {
 	@Test
 	public void testEquals() {
 		assertEquals(Option.of("TEST"), (Option.of("TEST")));
-		assertEquals(
-				Option.of("42").map(Integer::parseInt),
-				Option.of("42").map(Integer::parseInt));
+		assertEquals(Option.of("42").map(Integer::parseInt),
+			Option.of("42").map(Integer::parseInt));
 		assertEquals(Option.none(), (Option.of(null)));
 
 		assertNotEquals(Option.of("TEST1"), Option.of("TEST2"));
@@ -89,10 +88,10 @@ public class OptionTest extends MonadTest {
 	public void testFilter() {
 		assertTrue(Option.of(42).filter(i -> i == 42).exists());
 		assertFalse(Option.of(42).filter(i -> i < 42).exists());
-		assertFalse(
-				Option.<Integer>none()
-						.filter(i -> i >= Integer.MIN_VALUE)
-						.exists());
+		assertFalse(Option
+			.<Integer>none()
+			.filter(i -> i >= Integer.MIN_VALUE)
+			.exists());
 	}
 
 	/**
@@ -103,9 +102,10 @@ public class OptionTest extends MonadTest {
 		Option<String> none = Option.none();
 
 		assertFalse(none.flatMap(s -> Option.of(s.length())).exists());
-		Option.of("42")
-				.flatMap(s -> Option.of(Integer.parseInt(s)))
-				.then(i -> assertTrue(i == 42));
+		Option
+			.of("42")
+			.flatMap(s -> Option.of(Integer.parseInt(s)))
+			.then(i -> assertEquals(42, (int) i));
 	}
 
 	/**
@@ -113,17 +113,16 @@ public class OptionTest extends MonadTest {
 	 */
 	@Test
 	public void testHashCode() {
-		assertTrue(
-				Option.of("TEST").hashCode() == Option.of("TEST").hashCode());
-		assertTrue(
-				Option.of("42").map(Integer::parseInt).hashCode() == Option.of("42").map(Integer::parseInt).hashCode());
-		assertTrue(Option.none().hashCode() == Option.of(null).hashCode());
+		assertEquals(Option.of("TEST").hashCode(),
+			Option.of("TEST").hashCode());
+		assertEquals(Option.of("42").map(Integer::parseInt).hashCode(),
+			Option.of("42").map(Integer::parseInt).hashCode());
+		assertEquals(Option.none().hashCode(), Option.of(null).hashCode());
 
-		assertFalse(
-				Option.of("TEST1").hashCode() == Option.of("TEST2").hashCode());
-		assertFalse(Option.of("TEST").hashCode() == Option.none()
-				.hashCode());
-		assertFalse(Option.none().hashCode() == Option.of("TEST").hashCode());
+		assertNotEquals(Option.of("TEST1").hashCode(),
+			Option.of("TEST2").hashCode());
+		assertNotEquals(Option.of("TEST").hashCode(), Option.none().hashCode());
+		assertNotEquals(Option.none().hashCode(), Option.of("TEST").hashCode());
 	}
 
 	/**
@@ -132,7 +131,8 @@ public class OptionTest extends MonadTest {
 	@Test
 	public void testMap() {
 		assertFalse(Option.of((String) null).map(s -> s.length()).exists());
-		Option.of("42").map(Integer::parseInt).then(i -> assertTrue(i == 42));
+		Option.of("42").map(Integer::parseInt).then(i -> assertEquals(42,
+			(int) i));
 	}
 
 	/**
@@ -162,8 +162,8 @@ public class OptionTest extends MonadTest {
 	 */
 	@Test
 	public void testNone() {
-		assertTrue(Option.none() == Option.of(null));
-		assertTrue(Option.of(null) == Option.none());
+		assertSame(Option.none(), Option.of(null));
+		assertSame(Option.of(null), Option.none());
 		Option.none().then(v -> fail());
 	}
 
@@ -174,19 +174,22 @@ public class OptionTest extends MonadTest {
 	public void testOfAll() {
 		boolean[] result = new boolean[1];
 
-		Option.ofAll(Arrays.asList(Option.of(1), Option.of(2), Option.of(3)))
+		try {
+			Option
+				.ofAll(Arrays.asList(Option.of(1), Option.of(2), Option.of(3)))
 				.then(c -> assertEquals(Arrays.asList(1, 2, 3), c))
 				.orFail();
+		} catch (Throwable throwable) {
+			throw new RuntimeException(throwable);
+		}
 
 		Option<Integer> noInt = Option.none();
 
-		Option.ofAll(
-				Arrays.asList(
-						Option.of(1),
-						Option.of(2),
-						Option.of(3),
-						noInt))
-				.then(c -> fail()).orElse(e -> result[0] = true);
+		Option
+			.ofAll(
+				Arrays.asList(Option.of(1), Option.of(2), Option.of(3), noInt))
+			.then(c -> fail())
+			.orElse(e -> result[0] = true);
 		assertTrue(result[0]);
 	}
 
@@ -195,32 +198,26 @@ public class OptionTest extends MonadTest {
 	 */
 	@Test
 	public void testOfExisting() {
-		Option.ofExisting(
-				Arrays.asList(Option.of(1), Option.of(2), Option.of(3))
-						.stream())
-				.then(
-						stream -> assertEquals(
-								Arrays.asList(1, 2, 3),
-								stream.collect(Collectors.toList())));
+		Option
+			.ofExisting(Arrays
+				.asList(Option.of(1), Option.of(2), Option.of(3))
+				.stream())
+			.then(stream -> assertEquals(Arrays.asList(1, 2, 3),
+				stream.collect(Collectors.toList())));
 
-		Option.ofExisting(
-				Arrays.asList(
-						Option.of(1),
-						Option.<Integer>none(),
-						Option.of(2),
-						Option.<Integer>none(),
-						Option.of(3),
-						Option.<Integer>none())
-						.stream())
-				.then(
-						stream -> assertEquals(
-								Arrays.asList(1, 2, 3),
-								stream.collect(Collectors.toList())));
+		Option
+			.ofExisting(Arrays
+				.asList(Option.of(1), Option.<Integer>none(), Option.of(2),
+					Option.<Integer>none(), Option.of(3),
+					Option.<Integer>none())
+				.stream())
+			.then(stream -> assertEquals(Arrays.asList(1, 2, 3),
+				stream.collect(Collectors.toList())));
 	}
 
 	/**
 	 * Test of {@link Option#orElse(Runnable)}, {@link Option#orUse(Object)},
-	 * {@link Option#orFail()}.
+	 * {@link Functor#orFail()}.
 	 */
 	@Test
 	public void testOr() {
