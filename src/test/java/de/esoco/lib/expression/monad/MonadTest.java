@@ -20,15 +20,16 @@ import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-
 /**
  * A base class for monad implementations that contains generic tests for the 3
  * fundamental monad laws. Subclasses need to implement {@link #testMonadLaws()}
- * and annotate it as a test method. There they should invoke {@link
- * #testAllMonadLaws(String, Function, Function, Function)} with the unit
- * function(s) of the monad type under test and the necessary test input values.
+ * and annotate it as a test method. There they should invoke
+ * {@link #testAllMonadLaws(String, Function, Function, Function)} with the unit
+ * function(s) of the monad type under test and the necessary test input
+ * values.
  *
- * <p>The specific generic type <code>M extends Monad&lt;String, M&gt;</code> in
+ * <p>The specific generic type <code>M extends Monad&lt;String, M&gt;</code>
+ * in
  * the class declaration is needed for the generic test implementation but
  * disallows the compiler to resolve any explicit monad subtype to be used in
  * subclasses. The best way is to completely omit the generic type declaration
@@ -38,7 +39,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 public abstract class MonadTest<M extends Monad<String, M>> {
 
-	/** A string value for testing monad laws. */
+	/**
+	 * A string value for testing monad laws.
+	 */
 	protected static final String TEST_VALUE = "TEST";
 
 	/**
@@ -53,11 +56,11 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 	public abstract void testMonadLaws() throws Exception;
 
 	/**
-	 * Helper method that returns a function which maps a string into another by
+	 * Helper method that returns a function which maps a string into
+	 * another by
 	 * appending a suffix.
 	 *
-	 * @param  suffix The test-specific suffix to append
-	 *
+	 * @param suffix The test-specific suffix to append
 	 * @return The mapping function
 	 */
 	protected Function<String, String> mapString(String suffix) {
@@ -67,27 +70,25 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 	/**
 	 * Tests all monad laws with default input value and mapping functions.
 	 *
-	 * @param fUnit The unit function to create a new monad
+	 * @param unit The unit function to create a new monad
 	 */
-	protected void testAllMonadLaws(Function<String, M> fUnit) {
-		testAllMonadLaws(TEST_VALUE, fUnit, mapString("1"), mapString("2"));
+	protected void testAllMonadLaws(Function<String, M> unit) {
+		testAllMonadLaws(TEST_VALUE, unit, mapString("1"), mapString("2"));
 	}
 
 	/**
 	 * Tests all monad laws for the given input value.
 	 *
 	 * @param testValue The test input value
-	 * @param fUnit     The unit function to create a new monad
+	 * @param unit      The unit function to create a new monad
 	 * @param f1        A function that maps values
 	 * @param f2        A function that maps values differently
 	 */
-	protected void testAllMonadLaws(String					 testValue,
-									Function<String, M>		 fUnit,
-									Function<String, String> f1,
-									Function<String, String> f2) {
-		testLaw1LeftIdentity(testValue, fUnit, f1);
-		testLaw2RightIdentity(testValue, fUnit);
-		testLaw3Associativity(testValue, fUnit, f1, f2);
+	protected void testAllMonadLaws(String testValue, Function<String, M> unit,
+		Function<String, String> f1, Function<String, String> f2) {
+		testLaw1LeftIdentity(testValue, unit, f1);
+		testLaw2RightIdentity(testValue, unit);
+		testLaw3Associativity(testValue, unit, f1, f2);
 	}
 
 	/**
@@ -96,16 +97,14 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 	 * <pre>M(V).flatMap(F(V)) == F(V)</pre>
 	 *
 	 * @param testValue The test input value
-	 * @param fUnit     The unit function to create a new monad
-	 * @param fMap      A function that maps values
+	 * @param unit      The unit function to create a new monad
+	 * @param map       A function that maps values
 	 */
-	protected void testLaw1LeftIdentity(String					 testValue,
-										Function<String, M>		 fUnit,
-										Function<String, String> fMap) {
+	protected void testLaw1LeftIdentity(String testValue,
+		Function<String, M> unit, Function<String, String> map) {
 		// always resolve with orUse() so that
-		assertEquals(
-			fUnit.apply(testValue).flatMap(fMap.andThen(fUnit)),
-			fMap.andThen(fUnit).apply(testValue));
+		assertEquals(unit.apply(testValue).flatMap(map.andThen(unit)),
+			map.andThen(unit).apply(testValue));
 	}
 
 	/**
@@ -114,34 +113,32 @@ public abstract class MonadTest<M extends Monad<String, M>> {
 	 * <pre>M(V).flatMap(M(V)) == M(V)</pre>
 	 *
 	 * @param testValue The test input value
-	 * @param fUnit     The unit function to create a new monad
+	 * @param unit      The unit function to create a new monad
 	 */
-	protected void testLaw2RightIdentity(
-		String				testValue,
-		Function<String, M> fUnit) {
-		M monad = fUnit.apply(testValue);
+	protected void testLaw2RightIdentity(String testValue,
+		Function<String, M> unit) {
+		M monad = unit.apply(testValue);
 
-		assertEquals(monad.flatMap(fUnit::apply), monad);
+		assertEquals(monad.flatMap(unit), monad);
 	}
 
 	/**
 	 * Test of monad law 3, associativity:
 	 *
-	 * <pre>M(V).flatMap(F1(V)).flatMap(F2(V')) == M(V).flatMap(F2(F1(V)))</pre>
+	 * <pre>M(V).flatMap(F1(V)).flatMap(F2(V')) == M(V).flatMap(F2(F1(V)))
+	 * </pre>
 	 *
 	 * @param testValue The test input value
-	 * @param fUnit     The unit function to create a new monad
+	 * @param unit      The unit function to create a new monad
 	 * @param f1        A function that maps values
 	 * @param f2        A function that maps values differently
 	 */
-	protected void testLaw3Associativity(String					  testValue,
-										 Function<String, M>	  fUnit,
-										 Function<String, String> f1,
-										 Function<String, String> f2) {
-		M monad = fUnit.apply(testValue);
+	protected void testLaw3Associativity(String testValue,
+		Function<String, M> unit, Function<String, String> f1,
+		Function<String, String> f2) {
+		M monad = unit.apply(testValue);
 
-		assertEquals(
-			monad.flatMap(f1.andThen(fUnit)).flatMap(f2.andThen(fUnit)),
-			monad.flatMap(f1.andThen(f2).andThen(fUnit)));
+		assertEquals(monad.flatMap(f1.andThen(unit)).flatMap(f2.andThen(unit)),
+			monad.flatMap(f1.andThen(f2).andThen(unit)));
 	}
 }

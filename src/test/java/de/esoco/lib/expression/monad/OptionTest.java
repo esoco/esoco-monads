@@ -47,13 +47,13 @@ public class OptionTest extends MonadTest {
 	public void testAnd() {
 		LocalDate today = LocalDate.now();
 
-		Option<LocalDate> aLocalDateOption = Option
+		Option<LocalDate> localDateOption = Option
 			.of(today.getYear())
 			.and(Option.of(today.getMonth()), (y, m) -> Pair.of(y, m))
 			.and(Option.of(today.getDayOfMonth()),
 				(ym, d) -> LocalDate.of(ym.first(), ym.second(), d));
 
-		aLocalDateOption.then(d -> assertEquals(today, d));
+		localDateOption.then(d -> assertEquals(today, d));
 	}
 
 	/**
@@ -121,8 +121,10 @@ public class OptionTest extends MonadTest {
 
 		assertNotEquals(Option.of("TEST1").hashCode(),
 			Option.of("TEST2").hashCode());
-		assertNotEquals(Option.of("TEST").hashCode(), Option.none().hashCode());
-		assertNotEquals(Option.none().hashCode(), Option.of("TEST").hashCode());
+		assertNotEquals(Option.of("TEST").hashCode(),
+			Option.none().hashCode());
+		assertNotEquals(Option.none().hashCode(),
+			Option.of("TEST").hashCode());
 	}
 
 	/**
@@ -131,8 +133,10 @@ public class OptionTest extends MonadTest {
 	@Test
 	public void testMap() {
 		assertFalse(Option.of((String) null).map(s -> s.length()).exists());
-		Option.of("42").map(Integer::parseInt).then(i -> assertEquals(42,
-			(int) i));
+		Option
+			.of("42")
+			.map(Integer::parseInt)
+			.then(i -> assertEquals(42, (int) i));
 	}
 
 	/**

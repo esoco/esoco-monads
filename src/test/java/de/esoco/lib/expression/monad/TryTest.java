@@ -20,6 +20,7 @@ import de.esoco.lib.datatype.Pair;
 import de.esoco.lib.expression.ThrowingSupplier;
 import de.esoco.lib.expression.monad.Try.Lazy;
 import org.junit.jupiter.api.Test;
+import org.opentest4j.AssertionFailedError;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -48,13 +49,13 @@ public class TryTest extends MonadTest {
 	public void testAnd() {
 		LocalDate today = LocalDate.now();
 
-		Try<LocalDate> aLocalDateTry = Try
-			.now(() -> today.getYear())
-			.and(Try.now(() -> today.getMonth()), Pair::of)
-			.and(Try.now(() -> today.getDayOfMonth()),
+		Try<LocalDate> localDateTry = Try
+			.now(today::getYear)
+			.and(Try.now(today::getMonth), Pair::of)
+			.and(Try.now(today::getDayOfMonth),
 				(ym, d) -> LocalDate.of(ym.first(), ym.second(), d));
 
-		aLocalDateTry.then(d -> assertEquals(today, d));
+		localDateTry.then(d -> assertEquals(today, d));
 	}
 
 	/**
@@ -103,6 +104,8 @@ public class TryTest extends MonadTest {
 		try {
 			Try.failure(new Exception()).orFail();
 			fail();
+		} catch (AssertionFailedError e) {
+			fail();
 		} catch (Throwable e) {
 			// expected
 		}
@@ -133,12 +136,12 @@ public class TryTest extends MonadTest {
 	 */
 	@Test
 	public void testFlatMap() {
-		Try<Integer> aTry = Try
+		Try<Integer> tryIt = Try
 			.now(() -> "42")
 			.flatMap(s -> Try.now(() -> Integer.parseInt(s)));
 
-		assertTrue(aTry.isSuccess());
-		aTry.then(i -> assertEquals(42, (int) i));
+		assertTrue(tryIt.isSuccess());
+		tryIt.then(i -> assertEquals(42, (int) i));
 		assertFalse(Try
 			.failure(new Exception())
 			.flatMap(v -> Try.now(() -> v))
@@ -172,8 +175,6 @@ public class TryTest extends MonadTest {
 
 	/**
 	 * Test of {@link Try#lazy(de.esoco.lib.expression.ThrowingSupplier)}.
-	 *
-	 * @throws Throwable
 	 */
 	@Test
 	public void testLazy() throws Throwable {
@@ -208,8 +209,6 @@ public class TryTest extends MonadTest {
 
 	/**
 	 * Test of {@link Try#map(Function)}.
-	 *
-	 * @throws Throwable
 	 */
 	@Test
 	public void testMap() throws Throwable {
@@ -240,8 +239,6 @@ public class TryTest extends MonadTest {
 
 	/**
 	 * Test of {@link Try#ofAll(Collection)}.
-	 *
-	 * @throws Throwable
 	 */
 	@Test
 	public void testOfAll() throws Throwable {
@@ -259,8 +256,6 @@ public class TryTest extends MonadTest {
 
 	/**
 	 * Test of {@link Try#ofSuccessful(java.util.stream.Stream)}.
-	 *
-	 * @throws Throwable
 	 */
 	@Test
 	public void testOfSuccessful() throws Throwable {

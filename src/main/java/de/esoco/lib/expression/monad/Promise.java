@@ -99,18 +99,18 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		Collection<Promise<T>> promises) {
 		// list needs to be synchronized because the promises may run in
 		// parallel in which case result.add(t) will be invoked concurrently
-		int nCount = promises.size();
-		List<T> result = Collections.synchronizedList(new ArrayList<>(nCount));
+		int count = promises.size();
+		List<T> result = Collections.synchronizedList(new ArrayList<>(count));
 
 		CompletableFuture<Collection<T>> stage = new CompletableFuture<>();
 
 		if (promises.isEmpty()) {
 			stage.complete(result);
 		} else {
-			promises.forEach(rPromise -> rPromise.then(v -> {
+			promises.forEach(promise -> promise.then(v -> {
 				result.add(v);
 
-				if (result.size() == nCount) {
+				if (result.size() == count) {
 					stage.complete(result);
 				}
 			}).orElse(stage::completeExceptionally));
@@ -136,7 +136,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 
 		CompletableFuture<T> stage = new CompletableFuture<>();
 
-		promises.forEach(rPromise -> rPromise
+		promises.forEach(promise -> promise
 			.then(stage::complete)
 			.orElse(stage::completeExceptionally));
 
@@ -403,8 +403,6 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 
 		/**
 		 * {@inheritDoc}
-		 *
-		 * @throws Exception
 		 */
 		@Override
 		public Promise<T> await() throws Exception {
@@ -570,7 +568,7 @@ public abstract class Promise<T> implements Monad<T, Promise<?>> {
 		 *
 		 * @return The resolved value
 		 * @throws Exception If the stage execution failed or a timeout has
-		 * been
+		 *                   been
 		 *                   reached
 		 */
 		Promise<T> getValue() throws Exception {

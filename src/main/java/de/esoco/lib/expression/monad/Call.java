@@ -108,11 +108,11 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 * a collection of the results
 	 */
 	public static <T> Call<Collection<T>> ofAll(Collection<Call<T>> calls) {
-		List<ThrowingSupplier<T>> aSuppliers =
+		List<ThrowingSupplier<T>> suppliers =
 			calls.stream().map(c -> c.supplier).collect(toList());
 
 		return call(
-			() -> aSuppliers.stream().map(Supplier::get).collect(toList()));
+			() -> suppliers.stream().map(Supplier::get).collect(toList()));
 	}
 
 	/**
@@ -262,15 +262,15 @@ public class Call<T> implements Monad<T, Call<?>> {
 	 * Internal method to apply a {@link #flatMap(Function)} function to the
 	 * result with the correct generic types.
 	 *
-	 * @param fMap The mapping function
+	 * @param map The mapping function
 	 * @return The mapped Call instance
 	 * @throws Exception If the
 	 */
 	@SuppressWarnings("unchecked")
 	<R, N extends Monad<R, Call<?>>> R applyFlatMapping(
-		Function<? super T, N> fMap) throws Exception {
+		Function<? super T, N> map) throws Exception {
 		try {
-			return fMap.apply(supplier.tryGet()).orFail();
+			return map.apply(supplier.tryGet()).orFail();
 		} catch (Throwable throwable) {
 			throw new RuntimeException(throwable);
 		}

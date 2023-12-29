@@ -66,7 +66,7 @@ public interface Functor<T> {
 	 * consuming operations.</p>
 	 *
 	 * @return The functor's value
-	 * @throws Exception An exception signaling an invalid or indeterminable
+	 * @throws Throwable An exception signaling an invalid or indeterminable
 	 *                   value
 	 */
 	T orFail() throws Throwable;
@@ -88,7 +88,8 @@ public interface Functor<T> {
 
 	/**
 	 * A consuming operation that either returns the functor's value or
-	 * throws a mapped exception if a valid value couldn't be determined.
+	 * throws a
+	 * mapped exception if a valid value couldn't be determined.
 	 *
 	 * <p>
 	 * In general, calls to the monadic functions {@link #map(Function)} or
@@ -127,9 +128,10 @@ public interface Functor<T> {
 	 * The default implementation invokes {@link #map(Function)}, discards the
 	 * result, and then returns the original value. Some subclasses may be able
 	 * to provide an optimized version. Furthermore, subclasses should
-	 * typically override this method with their own type as the return type
-	 * (but may just invoke the super implementation and cast the returned
-	 * value).
+	 * typically
+	 * override this method with their own type as the return type (but may
+	 * just
+	 * invoke the super implementation and cast the returned value).
 	 *
 	 * @param consumer The consumer of the wrapped value
 	 * @return The resulting functor for chained invocations

@@ -44,13 +44,13 @@ public class CallTest extends MonadTest {
 	public void testAnd() {
 		LocalDate today = LocalDate.now();
 
-		Call<LocalDate> aLocalDateCall = Call
+		Call<LocalDate> localDateCall = Call
 			.of(() -> today.getYear())
 			.and(Call.of(() -> today.getMonth()), (y, m) -> Pair.of(y, m))
 			.and(Call.of(() -> today.getDayOfMonth()),
 				(ym, d) -> LocalDate.of(ym.first(), ym.second(), d));
 
-		aLocalDateCall.then(d -> assertEquals(today, d));
+		localDateCall.then(d -> assertEquals(today, d));
 	}
 
 	/**
@@ -58,11 +58,11 @@ public class CallTest extends MonadTest {
 	 */
 	@Test
 	public void testEquals() {
-		ThrowingSupplier<String> fTestSupplier = () -> "TEST";
+		ThrowingSupplier<String> testSupplier = () -> "TEST";
 
-		assertEquals(Call.of(fTestSupplier), (Call.of(fTestSupplier)));
-		assertNotEquals(Call.of(fTestSupplier), Call.of(() -> "TEST2"));
-		assertNotEquals(Call.of(fTestSupplier),
+		assertEquals(Call.of(testSupplier), (Call.of(testSupplier)));
+		assertNotEquals(Call.of(testSupplier), Call.of(() -> "TEST2"));
+		assertNotEquals(Call.of(testSupplier),
 			Call.error(new Exception("ERROR")));
 	}
 
@@ -128,10 +128,10 @@ public class CallTest extends MonadTest {
 	 */
 	@Test
 	public void testHashCode() {
-		ThrowingSupplier<String> fTestSupplier = () -> "TEST";
+		ThrowingSupplier<String> testSupplier = () -> "TEST";
 
-		assertEquals(Call.of(fTestSupplier).hashCode(),
-			Call.of(fTestSupplier).hashCode());
+		assertEquals(Call.of(testSupplier).hashCode(),
+			Call.of(testSupplier).hashCode());
 	}
 
 	/**
@@ -194,15 +194,15 @@ public class CallTest extends MonadTest {
 	 */
 	@Test
 	public void testOr() {
-		Call<Object> aError = Call.error(new Exception("ERROR"));
+		Call<Object> error = Call.error(new Exception("ERROR"));
 
-		aError
+		error
 			.then(v -> fail())
 			.orElse(e -> assertEquals("ERROR", e.getMessage()));
-		assertEquals("DEFAULT", aError.orUse("DEFAULT"));
+		assertEquals("DEFAULT", error.orUse("DEFAULT"));
 
 		try {
-			aError.orThrow(Function.identity());
+			error.orThrow(Function.identity());
 			fail();
 		} catch (Throwable e) {
 			assertEquals(Exception.class, e.getClass());
@@ -210,7 +210,7 @@ public class CallTest extends MonadTest {
 		}
 
 		try {
-			aError.orFail();
+			error.orFail();
 			fail();
 		} catch (Throwable e) {
 			assertEquals(Exception.class, e.getClass());

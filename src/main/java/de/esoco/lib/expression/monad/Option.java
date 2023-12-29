@@ -98,10 +98,10 @@ public class Option<T> implements Monad<T, Option<?>> {
 	 */
 	public static <T> Option<Collection<T>> ofAll(
 		Collection<Option<T>> options) {
-		Optional<Option<T>> aMissing =
+		Optional<Option<T>> missing =
 			options.stream().filter(o -> !o.exists()).findFirst();
 
-		return aMissing.isPresent() ?
+		return missing.isPresent() ?
 		       none() :
 		       Option.of(options.stream().map(tOption -> {
 			       try {
@@ -312,7 +312,7 @@ public class Option<T> implements Monad<T, Option<?>> {
 	 * @see Functor#orFail()
 	 */
 	@Override
-	public T orFail() throws Throwable {
+	public T orFail() throws NullPointerException {
 		if (exists()) {
 			return value;
 		} else {

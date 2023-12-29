@@ -46,7 +46,7 @@ public interface Monad<T, M extends Monad<?, M>> extends Functor<T> {
 	 *
 	 * <p>Implementations should override this method to return their own type
 	 * but they can simply invoke the default implementation (<code>
-	 * Monad.super.and(rOther, fJoin)</code>) and cast the result to their own
+	 * Monad.super.and(other, join)</code>) and cast the result to their own
 	 * type. The explicit declaration in subclasses is necessary because of the
 	 * limitations of Java's generic type system.</p>
 	 *

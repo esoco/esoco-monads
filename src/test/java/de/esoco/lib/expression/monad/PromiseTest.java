@@ -45,33 +45,29 @@ public class PromiseTest extends MonadTest {
 
 	/**
 	 * Test of {@link Promise#and(Monad, java.util.function.BiFunction)}.
-	 *
-	 * @throws Throwable
 	 */
 	@Test
 	public void testAnd() throws Throwable {
 		LocalDate today = LocalDate.now();
 
-		Promise<LocalDate> aLocalDatePromise = Promise
+		Promise<LocalDate> localDatePromise = Promise
 			.of(() -> today.getYear())
 			.and(Promise.of(() -> today.getMonth()), (y, m) -> Pair.of(y, m))
 			.and(Promise.of(() -> today.getDayOfMonth()),
 				(ym, d) -> LocalDate.of(ym.first(), ym.second(), d));
 
-		aLocalDatePromise.then(d -> assertEquals(today, d)).orFail();
+		localDatePromise.then(d -> assertEquals(today, d)).orFail();
 	}
 
 	/**
 	 * Test of {@link Promise#orFail()}.
-	 *
-	 * @throws Exception
 	 */
 	@Test
 	public void testAwaitAndOrElse() throws Exception {
 		Promise<String> p = Promise.failure(new Exception());
-		Throwable[] aResult = new Exception[1];
+		Throwable[] result = new Exception[1];
 
-		p = p.then(s -> fail()).orElse(e -> aResult[0] = e);
+		p = p.then(s -> fail()).orElse(e -> result[0] = e);
 
 		try {
 			p.await();
@@ -81,13 +77,11 @@ public class PromiseTest extends MonadTest {
 		}
 
 		assertEquals("ERROR", p.orUse("ERROR"));
-		assertNotNull(aResult[0]);
+		assertNotNull(result[0]);
 	}
 
 	/**
 	 * Test of {@link Promise#flatMap(java.util.function.Function)}.
-	 *
-	 * @throws Throwable
 	 */
 	@Test
 	public void testFlatMap() throws Throwable {
@@ -100,8 +94,6 @@ public class PromiseTest extends MonadTest {
 
 	/**
 	 * Test of {@link Promise#map(Function)}.
-	 *
-	 * @throws Throwable
 	 */
 	@Test
 	public void testMap() throws Throwable {
@@ -114,8 +106,6 @@ public class PromiseTest extends MonadTest {
 
 	/**
 	 * {@inheritDoc}
-	 *
-	 * @throws Exception
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
@@ -171,8 +161,6 @@ public class PromiseTest extends MonadTest {
 
 	/**
 	 * Test of {@link Promise#ofAny(Collection)}.
-	 *
-	 * @throws Exception
 	 */
 	@Test
 	public void testOfAny() throws Exception {
@@ -233,14 +221,14 @@ public class PromiseTest extends MonadTest {
 	 */
 	@Test
 	public void testOrThrow() {
-		Exception eError = new Exception();
-		Promise<String> p = Promise.failure(eError);
+		Exception error = new Exception();
+		Promise<String> p = Promise.failure(error);
 
 		try {
-			p.orThrow(e -> eError);
+			p.orThrow(e -> error);
 			fail();
 		} catch (Throwable e) {
-			assertEquals(eError, e);
+			assertEquals(error, e);
 		}
 
 		p = Promise.of(() -> {
@@ -248,10 +236,10 @@ public class PromiseTest extends MonadTest {
 		});
 
 		try {
-			p.orThrow(e -> eError);
+			p.orThrow(e -> error);
 			fail();
 		} catch (Throwable e) {
-			assertEquals(eError, e);
+			assertEquals(error, e);
 		}
 	}
 
