@@ -103,9 +103,9 @@ public class Option<T> implements Monad<T, Option<?>> {
 
 		return missing.isPresent() ?
 		       none() :
-		       Option.of(options.stream().map(tOption -> {
+		       Option.of(options.stream().map(option -> {
 			       try {
-				       return tOption.orFail();
+				       return option.orFail();
 			       } catch (Throwable throwable) {
 				       throw new RuntimeException(throwable);
 			       }
